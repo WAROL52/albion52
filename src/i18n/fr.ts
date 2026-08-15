@@ -46,6 +46,16 @@ const fr = {
   'detail.source.buy': 'Acheter',
   'detail.source.craft': 'Crafter',
   'detail.source.gather': 'Récolter',
+
+  'settings.title': 'Réglages',
+  'settings.quantity': 'Quantité',
+  'settings.focus': 'Utiliser le focus',
+  'settings.sense': 'Sens de marché',
+  'settings.instant': 'Instantané',
+  'settings.orders': 'Ordres',
+  'settings.stationFee': 'Frais de station',
+  'settings.marketTax': 'Taxe de marché',
+  'settings.journal': 'Journal compté',
 } as const;
 
 export type Messages = typeof fr;

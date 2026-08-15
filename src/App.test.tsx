@@ -37,4 +37,37 @@ describe('écran sélection + verdict (fumée d\'intégration)', () => {
     const after = read();
     expect(after).not.toBe(before);
   });
+
+  it('ajuste la quantité par stepper et saisie, bornée à 10000', () => {
+    render(<App />);
+    const input = screen.getByLabelText('Quantité') as HTMLInputElement;
+    expect(input.value).toBe('100');
+    fireEvent.click(screen.getAllByRole('button', { name: '+' })[0]);
+    expect(input.value).toBe('150');
+    fireEvent.change(input, { target: { value: '99999' } });
+    expect(input.value).toBe('10000');
+    fireEvent.change(input, { target: { value: '0' } });
+    expect(input.value).toBe('1');
+  });
+
+  it('bascule focus / sens / journal et règle frais + taxe en direct', () => {
+    render(<App />);
+    const read = () => screen.getByText(/Silver \/ heure/).parentElement!.textContent!;
+    const before = read();
+
+    fireEvent.click(screen.getByRole('switch', { name: 'Utiliser le focus' }));
+    const afterFocus = read();
+    expect(afterFocus).not.toBe(before);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Ordres' }));
+    const afterSense = read();
+    expect(afterSense).not.toBe(afterFocus);
+
+    fireEvent.click(screen.getByRole('switch', { name: 'Journal compté' }));
+    const afterJournal = read();
+    expect(afterJournal).not.toBe(afterSense);
+
+    fireEvent.click(screen.getAllByRole('button', { name: '−' })[1]);
+    expect(screen.getByText('20%')).toBeInTheDocument();
+  });
 });

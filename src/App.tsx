@@ -6,6 +6,7 @@ import { Browser, type Crumb } from './components/Browser';
 import { Verdict } from './components/Verdict';
 import { Icon } from './components/Icon';
 import { PriceBar } from './components/PriceBar';
+import { Settings } from './components/Settings';
 import { cls } from './lib/format';
 
 const makeState = (): State => ({ ...Calc.DEFAULTS, sources: { ...Calc.DEFAULTS.sources } });
@@ -49,6 +50,7 @@ export default function App() {
               onReset={reset}
             />
             <PriceBar outId={outId} onSynced={syncPrices} />
+            <Settings state={state} dispatch={dispatch} />
           </div>
         </div>
 
