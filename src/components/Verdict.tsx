@@ -1,8 +1,21 @@
-import type { ComputeResult } from '../engine/calc';
+import type { ComputeResult, Source, State } from '../engine/calc';
 import { t } from '../i18n';
 import { cls, fmtTime, money, verdict } from '../lib/format';
+import { IngredientTree } from './IngredientTree';
 
-export function Verdict({ res, qty }: { res: ComputeResult; qty: number }) {
+export function Verdict({ res, qty, state, onSource }: {
+  res: ComputeResult;
+  qty: number;
+  state: State;
+  onSource: (family: string, source: Source) => void;
+}) {
+  const rows = [
+    { label: t('detail.net'), value: res.rc.net, cls: '' },
+    { label: t('detail.fee'), value: res.fee, cls: '' },
+    { label: t('detail.journal'), value: res.journ, cls: '' },
+    { label: t('detail.tax'), value: res.tax, cls: 'neg' },
+  ];
+
   return (
     <>
       <div className="rounded-2xl border border-[var(--line)] bg-[var(--panel)] p-4 shadow-sm">
@@ -36,6 +49,25 @@ export function Verdict({ res, qty }: { res: ComputeResult; qty: number }) {
           <div className="text-xs text-[var(--muted)]">{t('tiles.profit')}</div>
           <div className={`mt-1 text-sm font-bold tabular-nums ${cls(res.profit)}`}>{money(res.profit)}</div>
         </div>
+      </div>
+
+      <div className="mt-3 rounded-xl border border-[var(--line)] bg-[var(--panel)] p-3">
+        <div className="mb-2 text-sm font-bold">{t('detail.title')}</div>
+        <div className="mb-3 grid grid-cols-2 gap-x-4 gap-y-1">
+          {rows.map(r => (
+            <div key={r.label} className="flex justify-between text-xs">
+              <span className="text-[var(--muted)]">{r.label}</span>
+              <span className={`tabular-nums ${r.cls === 'neg' ? 'text-[var(--neg)]' : 'text-[var(--fg)]'}`}>{money(r.value)}</span>
+            </div>
+          ))}
+          <div className="flex justify-between border-t border-[var(--line)] pt-1 text-xs font-bold">
+            <span>{t('tiles.cost')}</span>
+            <span className="tabular-nums">{money(res.cost)}</span>
+          </div>
+        </div>
+
+        <div className="mb-1 text-xs uppercase tracking-wide text-[var(--muted)]">{t('detail.ingredients')}</div>
+        <IngredientTree res={res} state={state} journCost={res.journ} onSource={onSource} />
       </div>
     </>
   );

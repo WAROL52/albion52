@@ -8,9 +8,9 @@ describe('écran sélection + verdict (fumée d\'intégration)', () => {
     expect(screen.getAllByText('Épée longue').length).toBeGreaterThan(0);
     expect(screen.getByText('T4_MAIN_SWORD')).toBeInTheDocument();
     expect(screen.getByText(/Silver \/ heure/)).toBeInTheDocument();
-    expect(screen.getByText('Coût')).toBeInTheDocument();
+    expect(screen.getAllByText('Coût').length).toBeGreaterThan(0);
     expect(screen.getByText('Revenu')).toBeInTheDocument();
-    expect(screen.getByText('Profit')).toBeInTheDocument();
+    expect(screen.getAllByText('Profit').length).toBeGreaterThan(0);
   });
 
   it('navigue dans le catalogue et change le verdict sans rechargement', () => {
@@ -26,5 +26,15 @@ describe('écran sélection + verdict (fumée d\'intégration)', () => {
     render(<App />);
     fireEvent.click(screen.getByRole('button', { name: 'T5' }));
     expect(screen.getByText('T5_MAIN_SWORD')).toBeInTheDocument();
+  });
+
+  it('change la source d\'un ingrédient et recalcule le verdict en direct', () => {
+    render(<App />);
+    const read = () => screen.getByText(/Silver \/ heure/).parentElement!.textContent!;
+    const before = read();
+    expect(screen.getAllByRole('button', { name: 'Acheter' }).length).toBeGreaterThan(0);
+    fireEvent.click(screen.getAllByRole('button', { name: 'Acheter' })[0]);
+    const after = read();
+    expect(after).not.toBe(before);
   });
 });

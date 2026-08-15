@@ -35,6 +35,17 @@ const fr = {
   'prices.buy': 'Achat',
   'prices.override': 'Override',
   'prices.apply': 'OK',
+
+  'detail.title': 'Détail du calcul',
+  'detail.net': 'Net (après retour)',
+  'detail.fee': 'Frais de station',
+  'detail.journal': 'Journal',
+  'detail.tax': 'Taxe de marché',
+  'detail.ingredients': 'Recette — ingrédients & sources',
+  'detail.rawHint': 'Ressource brute : pas de recette, à récolter ou à acheter.',
+  'detail.source.buy': 'Acheter',
+  'detail.source.craft': 'Crafter',
+  'detail.source.gather': 'Récolter',
 } as const;
 
 export type Messages = typeof fr;

@@ -1,5 +1,5 @@
 import { useReducer, useState } from 'react';
-import { Calc, type Action, type PriceFeed, type Selection, type State } from './engine/calc';
+import { Calc, type Action, type PriceFeed, type Selection, type Source, type State } from './engine/calc';
 import { t } from './i18n';
 import { getFeed, priceIdsFor, refresh } from './data/prices';
 import { Browser, type Crumb } from './components/Browser';
@@ -24,6 +24,7 @@ export default function App() {
   const r = res.recipe;
 
   const sel = (v: Partial<Selection>) => dispatch({ type: 'SET_SELECTION', value: v });
+  const setSource = (family: string, source: Source) => dispatch({ type: 'SET_SOURCE', family, source });
   const reset = () => {
     setPath([]);
     dispatch({ type: 'RESET' });
@@ -66,7 +67,7 @@ export default function App() {
             {res.isRaw ? fam.name : r?.desc}
           </div>
 
-          <Verdict res={res} qty={state.quantity} />
+          <Verdict res={res} qty={state.quantity} state={state} onSource={setSource} />
         </div>
       </div>
     </div>
