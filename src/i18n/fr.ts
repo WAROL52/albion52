@@ -25,6 +25,16 @@ const fr = {
   'tiles.cost': 'Coût',
   'tiles.revenue': 'Revenu',
   'tiles.profit': 'Profit',
+
+  'prices.title': 'Prix du marché',
+  'prices.noData': 'pas de données',
+  'prices.age': 'il y a {age}',
+  'prices.stale': 'expiré · {age}',
+  'prices.refresh': 'Actualiser',
+  'prices.sell': 'Vente',
+  'prices.buy': 'Achat',
+  'prices.override': 'Override',
+  'prices.apply': 'OK',
 } as const;
 
 export type Messages = typeof fr;

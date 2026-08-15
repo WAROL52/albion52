@@ -1,9 +1,11 @@
 import { useReducer, useState } from 'react';
-import { Calc, type Action, type Selection, type State } from './engine/calc';
+import { Calc, type Action, type PriceFeed, type Selection, type State } from './engine/calc';
 import { t } from './i18n';
+import { getFeed, priceIdsFor, refresh } from './data/prices';
 import { Browser, type Crumb } from './components/Browser';
 import { Verdict } from './components/Verdict';
 import { Icon } from './components/Icon';
+import { PriceBar } from './components/PriceBar';
 import { cls } from './lib/format';
 
 const makeState = (): State => ({ ...Calc.DEFAULTS, sources: { ...Calc.DEFAULTS.sources } });
@@ -13,8 +15,11 @@ const reducer = (s: State, a: Action): State => Calc.reduce(s, a);
 export default function App() {
   const [state, dispatch] = useReducer(reducer, undefined, makeState);
   const [path, setPath] = useState<Crumb[]>([]);
+  const [feed, setFeed] = useState<PriceFeed>(getFeed);
 
-  const res = Calc.compute(state);
+  const outId = Calc.itemId(state.selection.family, state.selection.tier, state.selection.enchant);
+
+  const res = Calc.compute(state, feed);
   const fam = Calc.FAMILIES[state.selection.family];
   const r = res.recipe;
 
@@ -22,6 +27,11 @@ export default function App() {
   const reset = () => {
     setPath([]);
     dispatch({ type: 'RESET' });
+  };
+
+  const syncPrices = async () => {
+    await refresh(priceIdsFor(outId));
+    setFeed(getFeed());
   };
 
   return (
@@ -37,6 +47,7 @@ export default function App() {
               onSelect={sel}
               onReset={reset}
             />
+            <PriceBar outId={outId} onSynced={syncPrices} />
           </div>
         </div>
 

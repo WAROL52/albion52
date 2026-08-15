@@ -38,6 +38,13 @@ export interface Sources {
   [family: string]: Source;
 }
 
+export interface FeedPrice {
+  ask: number[];
+  bid: number[];
+}
+
+export type PriceFeed = Record<string, FeedPrice>;
+
 export interface State {
   selection: Selection;
   quantity: number;
@@ -271,7 +278,9 @@ const isJournal = (id: string): boolean => {
   return !!p && p.family.indexOf('JOURNAL_') === 0;
 };
 
-const priceOf = (id: string, side: 'buy' | 'sell', sense: Sense): number => {
+const priceOf = (id: string, side: 'buy' | 'sell', sense: Sense, feed?: PriceFeed): number => {
+  const fp = feed?.[id];
+  if (fp) return sense === 'instant' ? (side === 'buy' ? fp.ask[0] : fp.bid[0]) : (side === 'buy' ? fp.bid[0] : fp.ask[0]);
   const p = parseId(id);
   if (!p) return 0;
   let mid: number;
@@ -288,16 +297,22 @@ const priceOf = (id: string, side: 'buy' | 'sell', sense: Sense): number => {
   return sense === 'instant' ? bid : ask;
 };
 
-const qPrice = (id: string, side: 'buy' | 'sell', q: number, sense: Sense): number =>
-  Math.round(priceOf(id, side, sense) * QUALITY_MULT[q]);
+const qPrice = (id: string, side: 'buy' | 'sell', q: number, sense: Sense, feed?: PriceFeed): number => {
+  const fp = feed?.[id];
+  if (fp) {
+    const arr = sense === 'instant' ? (side === 'buy' ? fp.ask : fp.bid) : (side === 'buy' ? fp.bid : fp.ask);
+    return arr[q - 1];
+  }
+  return Math.round(priceOf(id, side, sense) * QUALITY_MULT[q]);
+};
 
 const probsOf = (s: State): Record<number, number> =>
   s.focus ? QUALITY_PROBS.withFocus : QUALITY_PROBS.noFocus;
 
-const evPrice = (id: string, side: 'buy' | 'sell', s: State): number => {
+const evPrice = (id: string, side: 'buy' | 'sell', s: State, feed?: PriceFeed): number => {
   const probs = probsOf(s);
   let ev = 0;
-  for (let q = 1; q <= 5; q++) ev += probs[q] * qPrice(id, side, q, s.sense);
+  for (let q = 1; q <= 5; q++) ev += probs[q] * qPrice(id, side, q, s.sense, feed);
   return Math.round(ev);
 };
 
@@ -385,27 +400,27 @@ const sourceOf = (s: State, id: string): Source => {
 
 const MAX_DEPTH = 6;
 
-const computeIngredient = (itemId: string, qty: number, s: State, depth: number): IngredientNode => {
+const computeIngredient = (itemId: string, qty: number, s: State, depth: number, feed?: PriceFeed): IngredientNode => {
   const source = sourceOf(s, itemId);
   if (source === 'gather')
     return { item: itemId, source, qty, cost: 0, timeSec: 0, children: [] };
   if (source === 'craft' && depth < MAX_DEPTH) {
     const sub = recipeProducing(itemId);
     if (sub) {
-      const node = computeRecipe(sub, qty, s, depth + 1);
+      const node = computeRecipe(sub, qty, s, depth + 1, feed);
       return { item: itemId, source, qty, sub, cost: node.cost, timeSec: node.timeSec, children: node.ingNodes };
     }
   }
-  return { item: itemId, source: 'buy', qty, cost: priceOf(itemId, 'buy', s.sense) * qty, timeSec: 0, children: [] };
+  return { item: itemId, source: 'buy', qty, cost: priceOf(itemId, 'buy', s.sense, feed) * qty, timeSec: 0, children: [] };
 };
 
-const computeRecipe = (recipe: Recipe, qty: number, s: State, depth: number): RecipeNode => {
-  const ingNodes = recipe.ingredients.map(([id, iqty]) => computeIngredient(id, iqty * qty, s, depth));
+const computeRecipe = (recipe: Recipe, qty: number, s: State, depth: number, feed?: PriceFeed): RecipeNode => {
+  const ingNodes = recipe.ingredients.map(([id, iqty]) => computeIngredient(id, iqty * qty, s, depth, feed));
   const gross = ingNodes.reduce((t, n) => t + n.cost, 0);
   const rate = s.focus ? s.returnWithFocus : s.returnNoFocus;
   const net = gross * (1 - rate);
   const fee = gross * s.stationFeePct / 100;
-  const journ = recipe.journal && s.journalCounted ? priceOf(recipe.journal, 'buy', s.sense) * qty : 0;
+  const journ = recipe.journal && s.journalCounted ? priceOf(recipe.journal, 'buy', s.sense, feed) * qty : 0;
   return {
     recipe,
     qty,
@@ -420,25 +435,25 @@ const computeRecipe = (recipe: Recipe, qty: number, s: State, depth: number): Re
   };
 };
 
-const compute = (s: State): ComputeResult => {
+const compute = (s: State, feed?: PriceFeed): ComputeResult => {
   const sel = s.selection;
   const outId = itemId(sel.family, sel.tier, sel.enchant);
   const recipe = recipeFor(outId);
   const isRaw = !recipe;
   const node = isRaw
     ? { recipe: null, qty: s.quantity, ingNodes: [], gross: 0, rate: 0, net: 0, fee: 0, journ: 0, cost: 0, timeSec: 0 }
-    : computeRecipe(recipe!, s.quantity, s, 0);
+    : computeRecipe(recipe!, s.quantity, s, 0, feed);
   const sellPerUnit = sel.quality === 'ev'
-    ? evPrice(outId, 'sell', s)
-    : qPrice(outId, 'sell', sel.quality, s.sense);
+    ? evPrice(outId, 'sell', s, feed)
+    : qPrice(outId, 'sell', sel.quality, s.sense, feed);
   const revGross = sellPerUnit * s.quantity;
   const tax = revGross * s.marketTaxPct / 100;
   const profit = revGross - tax - node.cost;
   const secTotal = node.timeSec;
   const perHour = secTotal > 0 ? profit / (secTotal / 3600) : 0;
   const buyCostPerUnit = sel.quality === 'ev'
-    ? evPrice(outId, 'buy', { ...s, sense: 'instant' })
-    : qPrice(outId, 'buy', sel.quality, 'instant');
+    ? evPrice(outId, 'buy', { ...s, sense: 'instant' }, feed)
+    : qPrice(outId, 'buy', sel.quality, 'instant', feed);
   const craftVsBuy = buyCostPerUnit - node.cost / s.quantity;
   return {
     recipe, outId, isRaw, node,
