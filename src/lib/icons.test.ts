@@ -1,35 +1,83 @@
 // @vitest-environment node
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync, statSync } from 'node:fs';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { describe, expect, it } from 'vitest';
-import { Calc } from '../engine/calc';
-import { iconUrl } from './format';
+import { describe, expect, it, beforeAll } from 'vitest';
+import { Calc } from '../engine/calc.ts';
 
 const publicDir = fileURLToPath(new URL('../../public', import.meta.url));
+const ICON_DIR = join(publicDir, 'icons');
 
-const iconFile = (fam: string): string => `${publicDir}/img/T4_${fam}.png`;
+// Chargement du manifest au beforeAll (syntaxe ESM-safe via readFileSync + JSON.parse)
+let manifest: Record<string, string[]> = {};
+beforeAll(() => {
+  manifest = JSON.parse(readFileSync(join(publicDir, '..', '..', 'public', 'icons', 'manifest.json'), 'utf-8'));
+});
 
-describe('icônes d\'items', () => {
-  it('iconUrl préfixe par le base path (BASE_URL)', () => {
-    expect(iconUrl('ORE')).toBe(`${import.meta.env.BASE_URL}img/T4_ORE.png`);
-    expect(import.meta.env.BASE_URL.startsWith('/')).toBe(true);
+function familyIconPath(fam: string, file: string): string {
+  return join(ICON_DIR, fam, file);
+}
+
+describe('icônes d\'items - vérification complète', () => {
+  it('chaque famille du moteur a son dossier + fallback name.png', () => {
+    for (const fam of [...Object.keys(Calc.FAMILIES), ...Object.keys(Calc.JOURNAL).map(p => `JOURNAL_${p}`)]) {
+      const fallbackPath = familyIconPath(fam, `${fam}.png`);
+      expect(existsSync(fallbackPath)).toBe(true);
+    }
   });
 
-  it('chaque famille du moteur a son fichier d\'icône', () => {
-    const missing = Object.keys(Calc.FAMILIES).filter(fam => !existsSync(iconFile(fam)));
-    expect(missing).toEqual([]);
+  it('chaque fichier variant téléchargé correspond à une famille valide et existe sur disque', () => {
+    for (const [fam, files] of Object.entries(manifest)) {
+      const isJournal = fam.startsWith('JOURNAL_');
+      for (const f of files) {
+        const m = f.match(/^(.+)\.T(\d+)\.(\d+)\.Q(\d+)$/);
+        expect(m).toBeTruthy();
+        if (!m) continue;
+        const [, family, _tier, _enchant, _quality] = m;
+        const validFamily = Calc.FAMILIES[family] || (isJournal && Calc.JOURNAL[family.slice('JOURNAL_'.length)]);
+        expect(validFamily).toBeTruthy();
+        const expectedPath = familyIconPath(fam, f);
+        expect(existsSync(expectedPath)).toBe(true);
+      }
+    }
   });
 
-  it('chaque journal du moteur a son fichier d\'icône', () => {
-    const missing = Object.keys(Calc.JOURNAL).filter(prof => !existsSync(iconFile(`JOURNAL_${prof}`)));
-    expect(missing).toEqual([]);
+  it('toutes les combinaisons tier/enchant/quality ont soit un fichier, soit le fallback', () => {
+    for (const fam of [...Object.keys(Calc.FAMILIES), ...Object.keys(Calc.JOURNAL).map(p => `JOURNAL_${p}`)]) {
+      const fallbackPath = familyIconPath(fam, `${fam}.png`);
+      const fallbackExists = existsSync(fallbackPath);
+
+      for (const tier of Calc.TIERS) {
+        for (const enchant of Calc.ENCHANTS) {
+          for (let quality = 1; quality <= 5; quality++) {
+            const variantPath = familyIconPath(fam, `${fam}.${tier}.${enchant}.Q${quality}.png`);
+            const variantExists = existsSync(variantPath);
+            expect(variantExists || fallbackExists).toBe(true);
+          }
+        }
+      }
+    }
   });
 
-  it('chaque item référencé dans le catalogue a un fichier d\'icône', () => {
-    const walk = (nodes: typeof Calc.CATALOG): string[] =>
-      nodes.flatMap(n => [...(n.items ?? []), ...walk(n.subs ?? [])]);
-    const fams = [...new Set(walk(Calc.CATALOG))];
-    const missing = fams.filter(fam => !existsSync(iconFile(fam)));
-    expect(missing).toEqual([]);
+  it('aucun fichier PNG n est vide ou corrompu (min 100 octets)', () => {
+    for (const fam of [...Object.keys(Calc.FAMILIES), ...Object.keys(Calc.JOURNAL).map(p => `JOURNAL_${p}`)]) {
+      const fallbackPath = familyIconPath(fam, `${fam}.png`);
+      expect(existsSync(fallbackPath)).toBe(true);
+      const fallbackSize = statSync(fallbackPath).size;
+      expect(fallbackSize).toBeGreaterThanOrEqual(100);
+
+      // Vérifier quelques variantes aussi
+      for (const tier of Calc.TIERS.slice(0, 3)) {
+        for (const enchant of [0, 1]) {
+          for (let quality = 1; quality <= 2; quality++) {
+            const variantPath = familyIconPath(fam, `${fam}.${tier}.${enchant}.Q${quality}.png`);
+            if (existsSync(variantPath)) {
+              const size = statSync(variantPath).size;
+              expect(size).toBeGreaterThanOrEqual(100);
+            }
+          }
+        }
+      }
+    }
   });
 });

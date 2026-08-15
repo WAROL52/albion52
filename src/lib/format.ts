@@ -16,8 +16,6 @@ export const cls = (n: number): string => (n >= 0 ? 'pos' : 'neg');
 
 export const verdict = (n: number): string => (n >= 0 ? 'Rentable' : 'Pas rentable');
 
-export const iconUrl = (fam: string): string => `${import.meta.env.BASE_URL}img/T4_${fam}.png`;
-
 import { Calc } from '../engine/calc';
 
 export const KIND_LABEL: Record<string, string> = {

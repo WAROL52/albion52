@@ -43,7 +43,11 @@ export function Browser({ selection, state, path, onPush, onTo, onSelect, onRese
           onClick={() => onPush({ id: sub.id!, name: sub.name! })}
           className="flex w-full items-center gap-2 rounded-xl border border-[var(--line)] bg-[var(--panel2)] px-3 py-2 text-left"
         >
-          <Icon fam={sub.icon ?? (sub.items ? sub.items[0] : 'ORE')} />
+          <Icon
+          fam={sub.icon ?? (sub.items ? sub.items[0] : 'ORE')}
+          itemId={sub.items ? Calc.itemId(sub.items[0], selection.tier, selection.enchant) : undefined}
+          state={state}
+/>
           <span className="flex-1 text-sm font-bold">{sub.name}</span>
           <span className="text-[var(--muted)]">›</span>
         </button>

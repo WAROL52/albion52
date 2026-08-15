@@ -1,7 +1,8 @@
-import { useState } from 'react';
-import { Calc, type State } from '../engine/calc';
+import { useState, useEffect } from 'react';
+import { Calc, type State, type Tier } from '../engine/calc';
 import { t } from '../i18n';
-import { iconUrl, famNameOf, kindOf, money } from '../lib/format';
+import { iconUrl, iconUrlFallback } from '../lib/iconDir';
+import { famNameOf, kindOf, money } from '../lib/format';
 
 export function Icon({ fam, alt, itemId, state, onClick }: {
   fam: string;
@@ -11,8 +12,21 @@ export function Icon({ fam, alt, itemId, state, onClick }: {
   onClick?: () => void;
 }) {
   const [show, setShow] = useState(false);
-  const id = itemId ?? alt;
-  const hover = {
+  const [src, setSrc] = useState(iconUrlFallback(fam));
+
+  useEffect(() => {
+    if (itemId && state) {
+      const v = variantOf(itemId, state);
+      if (v) {
+        setSrc(iconUrl(fam, v));
+        return;
+      }
+    }
+    // fallback : premier fichier du dossier (ici name.png par construction)
+    setSrc(iconUrlFallback(fam));
+  }, [itemId, state, fam]);
+
+  const id = itemId ?? alt;  const hover = {
     onMouseEnter: () => setShow(true),
     onMouseLeave: () => setShow(false),
     onFocus: () => setShow(true),
@@ -20,10 +34,11 @@ export function Icon({ fam, alt, itemId, state, onClick }: {
   };
   const img = (
     <img
-      src={iconUrl(fam)}
+      src={src}
       alt={alt ?? fam}
       loading="lazy"
-      className="h-11 w-11 shrink-0 rounded object-contain transition duration-150 group-hover:scale-105 sm:h-9 sm:w-9"
+      onError={() => setSrc(iconUrlFallback(fam))}
+      className="h-14 w-14 shrink-0 rounded object-contain transition duration-150 group-hover:scale-105 sm:h-11 sm:w-11"
     />
   );
   const pop = id && state && show ? <Popover id={id} state={state} /> : null;
@@ -48,6 +63,14 @@ export function Icon({ fam, alt, itemId, state, onClick }: {
       {pop}
     </button>
   );
+}
+
+function variantOf(itemId?: string, state?: State): { tier: Tier; enchant: number; quality: number } | undefined {
+  if (!itemId || !state) return undefined;
+  const p = Calc.parseId(itemId);
+  if (!p) return undefined;
+  const q = state.selection.quality;
+  return { tier: p.tier, enchant: p.enchant, quality: q === 'ev' ? 1 : q };
 }
 
 function Popover({ id, state }: { id: string; state: State }) {
