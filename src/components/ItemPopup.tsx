@@ -39,7 +39,7 @@ export function ItemPopup({ itemId, state, onClose, onOpen }: {
     >
       <div className="w-full max-w-md rounded-t-2xl border border-[var(--line)] bg-[var(--panel)] shadow-2xl md:rounded-2xl">
         <div className="flex items-center gap-3 border-b border-[var(--line)] p-4">
-          <Icon fam={itemFamOf(itemId)} alt={itemId} />
+          <Icon fam={itemFamOf(itemId)} itemId={itemId} state={state} />
           <div className="min-w-0 flex-1">
             <div className="truncate text-base font-bold">{famNameOf(itemFamOf(itemId))}</div>
             <div className="truncate text-xs text-[var(--muted)]">{itemId}</div>
@@ -106,7 +106,7 @@ export function ItemPopup({ itemId, state, onClose, onOpen }: {
                       onClick={() => onOpen(ingId)}
                       className="flex w-full items-center gap-2 rounded-lg border border-[var(--line)] bg-[var(--panel2)] px-2.5 py-1.5 text-left"
                     >
-                      <Icon fam={itemFamOf(ingId)} onClick={() => onOpen(ingId)} />
+                      <Icon fam={itemFamOf(ingId)} itemId={ingId} state={state} onClick={() => onOpen(ingId)} />
                       <span className="min-w-0 flex-1">
                         <span className="block text-sm font-bold">{famNameOf(itemFamOf(ingId))}</span>
                         <span className="block text-xs text-[var(--muted)]">{ingId} × {qty}</span>
@@ -118,7 +118,7 @@ export function ItemPopup({ itemId, state, onClose, onOpen }: {
                       onClick={() => onOpen(rec.journal)}
                       className="flex w-full items-center gap-2 rounded-lg border border-[var(--line)] bg-[var(--panel2)] px-2.5 py-1.5 text-left"
                     >
-                      <Icon fam={itemFamOf(rec.journal)} onClick={() => onOpen(rec.journal)} />
+                      <Icon fam={itemFamOf(rec.journal)} itemId={rec.journal} state={state} onClick={() => onOpen(rec.journal)} />
                       <span className="min-w-0 flex-1">
                         <span className="block text-sm font-bold">{famNameOf(itemFamOf(rec.journal))}</span>
                         <span className="block text-xs text-[var(--muted)]">{rec.journal} × 1</span>
@@ -144,7 +144,7 @@ export function ItemPopup({ itemId, state, onClose, onOpen }: {
                     onClick={() => onOpen(u)}
                     className="flex w-full items-center gap-2 rounded-lg border border-[var(--line)] bg-[var(--panel2)] px-2.5 py-1.5 text-left"
                   >
-                    <Icon fam={itemFamOf(u)} onClick={() => onOpen(u)} />
+                    <Icon fam={itemFamOf(u)} itemId={u} state={state} onClick={() => onOpen(u)} />
                     <span className="min-w-0 flex-1">
                       <span className="block text-sm font-bold">{famNameOf(itemFamOf(u))}</span>
                       <span className="block text-xs text-[var(--muted)]">{kindOf(itemFamOf(u))} · {t('popup.usedAs')}</span>

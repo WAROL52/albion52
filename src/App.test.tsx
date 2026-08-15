@@ -83,4 +83,15 @@ describe('écran sélection + verdict (fumée d\'intégration)', () => {
     fireEvent.click(screen.getByRole('button', { name: /Fermer/ }));
     expect(screen.queryByRole('button', { name: /Fermer/ })).not.toBeInTheDocument();
   });
+
+  it('affiche le popover prix au survol d\'une icône d\'item', () => {
+    render(<App />);
+    const icones = screen.getAllByRole('img', { name: 'MAIN_SWORD' });
+    const icone = icones[icones.length - 1];
+    expect(screen.queryByText('Qualité visée')).not.toBeInTheDocument();
+    fireEvent.mouseEnter(icone.parentElement!);
+    expect(screen.getAllByText('Qualité visée').length).toBeGreaterThan(0);
+    fireEvent.mouseLeave(icone.parentElement!);
+    expect(screen.queryByText('Qualité visée')).not.toBeInTheDocument();
+  });
 });

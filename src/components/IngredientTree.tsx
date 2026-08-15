@@ -45,7 +45,7 @@ function IngRow({ node, state, depth, onSource, onOpen }: {
     <div className="py-1" style={{ marginLeft: depth * 18 }}>
       <div className="flex items-center justify-between gap-2">
         <div className="flex min-w-0 items-center">
-          <Icon fam={Calc.parseId(node.item)?.family ?? node.item} onClick={onOpen ? () => onOpen(node.item) : undefined} />
+          <Icon fam={Calc.parseId(node.item)?.family ?? node.item} itemId={node.item} state={state} onClick={onOpen ? () => onOpen(node.item) : undefined} />
           <span className="ml-1.5 truncate text-sm">
             <span className="font-semibold">{famNameOf(Calc.parseId(node.item)?.family ?? node.item)}</span>
             <span className="text-[var(--muted)]"> × {node.qty}</span>

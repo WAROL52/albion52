@@ -1,4 +1,4 @@
-import { Calc, type CatalogItem, type Selection, type Tier } from '../engine/calc';
+import { Calc, type CatalogItem, type Selection, type State, type Tier } from '../engine/calc';
 import { t } from '../i18n';
 import { Icon } from './Icon';
 
@@ -9,6 +9,7 @@ export interface Crumb {
 
 interface BrowserProps {
   selection: Selection;
+  state: State;
   path: Crumb[];
   onPush: (crumb: Crumb) => void;
   onTo: (i: number) => void;
@@ -30,7 +31,7 @@ const kindLabel = (fam: string): string => {
   return t('browser.kind.craft');
 };
 
-export function Browser({ selection, path, onPush, onTo, onSelect, onReset, onOpen }: BrowserProps) {
+export function Browser({ selection, state, path, onPush, onTo, onSelect, onReset, onOpen }: BrowserProps) {
   const node = nodeAt(path);
   const fam = Calc.FAMILIES[selection.family];
   const outId = Calc.itemId(selection.family, selection.tier, selection.enchant);
@@ -56,6 +57,8 @@ export function Browser({ selection, path, onPush, onTo, onSelect, onReset, onOp
         >
           <Icon
             fam={f}
+            itemId={Calc.itemId(f, selection.tier, selection.enchant)}
+            state={state}
             onClick={onOpen ? () => onOpen(Calc.itemId(f, selection.tier, selection.enchant)) : undefined}
           />
           <button onClick={() => onSelect({ family: f })} className="flex-1 text-left">
@@ -95,7 +98,7 @@ export function Browser({ selection, path, onPush, onTo, onSelect, onReset, onOp
     <div className="rounded-2xl border border-[var(--line)] bg-[var(--panel)] p-4 shadow-sm">
       <h3 className="mb-3 text-xs font-bold uppercase tracking-[0.1em] text-[var(--muted)]">{t('browser.title')}</h3>
       <div className="mb-3 flex items-center gap-2 rounded-xl border border-[var(--accent)] bg-[var(--panel)] px-3 py-2">
-        <Icon fam={selection.family} alt={outId} onClick={onOpen ? () => onOpen(outId) : undefined} />
+        <Icon fam={selection.family} alt={outId} itemId={outId} state={state} onClick={onOpen ? () => onOpen(outId) : undefined} />
         <div className="min-w-0 flex-1">
           <div className="truncate text-sm font-bold">{fam.name}</div>
           <div className="truncate text-xs text-[var(--muted)]">{outId}</div>

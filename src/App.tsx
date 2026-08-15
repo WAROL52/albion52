@@ -46,6 +46,7 @@ export default function App() {
           <div className="space-y-3">
             <Browser
               selection={state.selection}
+              state={state}
               path={path}
               onPush={c => setPath(p => [...p, c])}
               onTo={i => setPath(p => (i < 0 ? [] : p.slice(0, i + 1)))}
@@ -60,7 +61,7 @@ export default function App() {
 
         <div>
           <div className="mb-3 mt-3 flex items-center gap-2.5 md:mt-0">
-            <Icon fam={state.selection.family} onClick={() => setPopup(outId)} />
+            <Icon fam={state.selection.family} itemId={outId} state={state} onClick={() => setPopup(outId)} />
             <div className="min-w-0 flex-1 truncate text-base font-bold">
               {fam.name} <span className="text-xs font-normal text-[var(--muted)]">· {res.isRaw ? 'Ressource' : r?.type}</span>
             </div>
