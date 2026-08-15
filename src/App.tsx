@@ -60,7 +60,7 @@ export default function App() {
 
         <div>
           <div className="mb-3 mt-3 flex items-center gap-2.5 md:mt-0">
-            <Icon fam={state.selection.family} />
+            <Icon fam={state.selection.family} onClick={() => setPopup(outId)} />
             <div className="min-w-0 flex-1 truncate text-base font-bold">
               {fam.name} <span className="text-xs font-normal text-[var(--muted)]">· {res.isRaw ? 'Ressource' : r?.type}</span>
             </div>

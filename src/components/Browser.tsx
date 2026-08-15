@@ -48,20 +48,22 @@ export function Browser({ selection, path, onPush, onTo, onSelect, onReset, onOp
         </button>
       ))
     : node.items?.map(f => (
-        <button
+        <div
           key={f}
-          onClick={() => onSelect({ family: f })}
           className={`flex w-full items-center gap-2 rounded-xl border px-3 py-2 text-left ${
             selection.family === f ? 'border-[var(--accent)] bg-[#2a2216]' : 'border-[var(--line)] bg-[var(--panel2)]'
           }`}
         >
-          <Icon fam={f} />
-          <span className="flex-1">
+          <Icon
+            fam={f}
+            onClick={onOpen ? () => onOpen(Calc.itemId(f, selection.tier, selection.enchant)) : undefined}
+          />
+          <button onClick={() => onSelect({ family: f })} className="flex-1 text-left">
             <span className="block text-sm font-bold">{Calc.FAMILIES[f].name}</span>
             <span className="block text-xs text-[var(--muted)]">{kindLabel(f)}</span>
-          </span>
+          </button>
           {selection.family === f && <span className="text-[var(--accent)]">✓</span>}
-        </button>
+        </div>
       )) ?? [];
 
   const chips = <T,>(
@@ -93,7 +95,7 @@ export function Browser({ selection, path, onPush, onTo, onSelect, onReset, onOp
     <div className="rounded-2xl border border-[var(--line)] bg-[var(--panel)] p-4 shadow-sm">
       <h3 className="mb-3 text-xs font-bold uppercase tracking-[0.1em] text-[var(--muted)]">{t('browser.title')}</h3>
       <div className="mb-3 flex items-center gap-2 rounded-xl border border-[var(--accent)] bg-[var(--panel)] px-3 py-2">
-        <Icon fam={selection.family} alt={outId} />
+        <Icon fam={selection.family} alt={outId} onClick={onOpen ? () => onOpen(outId) : undefined} />
         <div className="min-w-0 flex-1">
           <div className="truncate text-sm font-bold">{fam.name}</div>
           <div className="truncate text-xs text-[var(--muted)]">{outId}</div>
