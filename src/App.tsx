@@ -1,7 +1,8 @@
-import { useReducer, useState } from 'react';
+import { useEffect, useReducer, useState } from 'react';
 import { Calc, type Action, type PriceFeed, type Selection, type Source, type State } from './engine/calc';
 import { t } from './i18n';
 import { getFeed, priceIdsFor, refresh } from './data/prices';
+import { loadSettings, saveSettings } from './data/settings';
 import { Browser, type Crumb } from './components/Browser';
 import { Verdict } from './components/Verdict';
 import { Icon } from './components/Icon';
@@ -10,7 +11,7 @@ import { Settings } from './components/Settings';
 import { ItemPopup } from './components/ItemPopup';
 import { cls } from './lib/format';
 
-const makeState = (): State => ({ ...Calc.DEFAULTS, sources: { ...Calc.DEFAULTS.sources } });
+const makeState = (): State => loadSettings();
 
 const reducer = (s: State, a: Action): State => Calc.reduce(s, a);
 
@@ -19,6 +20,10 @@ export default function App() {
   const [path, setPath] = useState<Crumb[]>([]);
   const [feed, setFeed] = useState<PriceFeed>(getFeed);
   const [popup, setPopup] = useState<string | null>(null);
+
+  useEffect(() => {
+    saveSettings(state);
+  }, [state]);
 
   const outId = Calc.itemId(state.selection.family, state.selection.tier, state.selection.enchant);
 

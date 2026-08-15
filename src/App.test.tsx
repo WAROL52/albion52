@@ -1,8 +1,18 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import App from './App';
 
 describe('écran sélection + verdict (fumée d\'intégration)', () => {
+  beforeEach(() => localStorage.clear());
+
+  it('restaure les réglages persistés au rechargement', () => {
+    localStorage.setItem('albion52:settings:v1', JSON.stringify({ quantity: 500, focus: true, sense: 'orders', selection: { family: 'MAIN_SWORD', tier: 'T5', enchant: 0, quality: 'ev' } }));
+    render(<App />);
+    expect((screen.getByLabelText('Quantité') as HTMLInputElement).value).toBe('500');
+    expect(screen.getByRole('switch', { name: 'Utiliser le focus' })).toHaveAttribute('aria-checked', 'true');
+    expect(screen.getByText('T5_MAIN_SWORD')).toBeInTheDocument();
+  });
+
   it('affiche le verdict par défaut pour l\'épée T4', () => {
     render(<App />);
     expect(screen.getAllByText('Épée longue').length).toBeGreaterThan(0);
