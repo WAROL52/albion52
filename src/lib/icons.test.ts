@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it, beforeAll } from 'vitest';
 import { Calc } from '../engine/calc.ts';
+import { iconDir } from './iconDir.ts';
 
 const publicDir = fileURLToPath(new URL('../../public', import.meta.url));
 const ICON_DIR = join(publicDir, 'icons');
@@ -11,11 +12,11 @@ const ICON_DIR = join(publicDir, 'icons');
 // Chargement du manifest au beforeAll (syntaxe ESM-safe via readFileSync + JSON.parse)
 let manifest: Record<string, string[]> = {};
 beforeAll(() => {
-  manifest = JSON.parse(readFileSync(join(publicDir, '..', '..', 'public', 'icons', 'manifest.json'), 'utf-8'));
+  manifest = JSON.parse(readFileSync(join(ICON_DIR, 'manifest.json'), 'utf-8'));
 });
 
 function familyIconPath(fam: string, file: string): string {
-  return join(ICON_DIR, fam, file);
+  return join(ICON_DIR, iconDir(fam), file);
 }
 
 describe('icônes d\'items - vérification complète', () => {
@@ -30,7 +31,7 @@ describe('icônes d\'items - vérification complète', () => {
     for (const [fam, files] of Object.entries(manifest)) {
       const isJournal = fam.startsWith('JOURNAL_');
       for (const f of files) {
-        const m = f.match(/^(.+)\.T(\d+)\.(\d+)\.Q(\d+)$/);
+        const m = f.match(/^(.+)\.T(\d+)\.(\d+)\.Q(\d+)\.png$/);
         expect(m).toBeTruthy();
         if (!m) continue;
         const [, family, _tier, _enchant, _quality] = m;
