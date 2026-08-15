@@ -3,11 +3,12 @@ import { t } from '../i18n';
 import { cls, fmtTime, money, verdict } from '../lib/format';
 import { IngredientTree } from './IngredientTree';
 
-export function Verdict({ res, qty, state, onSource }: {
+export function Verdict({ res, qty, state, onSource, onOpen }: {
   res: ComputeResult;
   qty: number;
   state: State;
   onSource: (family: string, source: Source) => void;
+  onOpen?: (id: string) => void;
 }) {
   const rows = [
     { label: t('detail.net'), value: res.rc.net, cls: '' },
@@ -67,7 +68,7 @@ export function Verdict({ res, qty, state, onSource }: {
         </div>
 
         <div className="mb-1 text-xs uppercase tracking-wide text-[var(--muted)]">{t('detail.ingredients')}</div>
-        <IngredientTree res={res} state={state} journCost={res.journ} onSource={onSource} />
+        <IngredientTree res={res} state={state} journCost={res.journ} onSource={onSource} onOpen={onOpen} />
       </div>
     </>
   );

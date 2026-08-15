@@ -14,6 +14,7 @@ interface BrowserProps {
   onTo: (i: number) => void;
   onSelect: (sel: Partial<Selection>) => void;
   onReset: () => void;
+  onOpen?: (id: string) => void;
 }
 
 function nodeAt(path: Crumb[]): CatalogItem {
@@ -29,7 +30,7 @@ const kindLabel = (fam: string): string => {
   return t('browser.kind.craft');
 };
 
-export function Browser({ selection, path, onPush, onTo, onSelect, onReset }: BrowserProps) {
+export function Browser({ selection, path, onPush, onTo, onSelect, onReset, onOpen }: BrowserProps) {
   const node = nodeAt(path);
   const fam = Calc.FAMILIES[selection.family];
   const outId = Calc.itemId(selection.family, selection.tier, selection.enchant);
@@ -100,6 +101,16 @@ export function Browser({ selection, path, onPush, onTo, onSelect, onReset }: Br
         <button onClick={onReset} className="rounded-full border border-[var(--neg)] bg-[#221011] px-3 py-1 text-xs text-[var(--neg)]">
           {t('browser.reset')}
         </button>
+        {onOpen && (
+          <button
+            onClick={() => onOpen(outId)}
+            aria-label={t('browser.openDetails')}
+            title={t('browser.openDetails')}
+            className="rounded-full border border-[var(--line)] bg-[var(--panel2)] px-2.5 py-1 text-xs font-bold text-[var(--muted)] hover:text-[var(--fg)]"
+          >
+            ℹ
+          </button>
+        )}
       </div>
 
       <div className="mb-3 flex flex-wrap items-center gap-1.5">

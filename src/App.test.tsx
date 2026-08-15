@@ -17,7 +17,7 @@ describe('écran sélection + verdict (fumée d\'intégration)', () => {
     render(<App />);
     fireEvent.click(screen.getByRole('button', { name: /Ressources/ }));
     fireEvent.click(screen.getByRole('button', { name: /Raffinées/ }));
-    fireEvent.click(screen.getByRole('button', { name: /Lingot/ }));
+    fireEvent.click(screen.getAllByRole('button', { name: /Lingot/ })[0]);
     expect(screen.getByText('T4_METALBAR')).toBeInTheDocument();
     expect(screen.getByText(/Rentable|Pas rentable/)).toBeInTheDocument();
   });
@@ -69,5 +69,18 @@ describe('écran sélection + verdict (fumée d\'intégration)', () => {
 
     fireEvent.click(screen.getAllByRole('button', { name: '−' })[1]);
     expect(screen.getByText('20%')).toBeInTheDocument();
+  });
+
+  it('ouvre la fiche item, navigue les onglets et se ferme', () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: /Voir la fiche/ }));
+    expect(screen.getByRole('button', { name: /Fermer/ })).toBeInTheDocument();
+    expect(screen.getByText('Détails')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Exigences de fabrication/ }));
+    fireEvent.click(screen.getAllByRole('button', { name: /Lingot/ })[0]);
+    fireEvent.click(screen.getByRole('button', { name: /Utilisé dans/ }));
+    expect(screen.getAllByText(/utilisé comme ingrédient/).length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByRole('button', { name: /Fermer/ }));
+    expect(screen.queryByRole('button', { name: /Fermer/ })).not.toBeInTheDocument();
   });
 });

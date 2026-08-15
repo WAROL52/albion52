@@ -1,21 +1,12 @@
 import { Calc, type IngredientNode, type State, type Source } from '../engine/calc';
 import { t } from '../i18n';
 import { Icon } from './Icon';
-import { money } from '../lib/format';
+import { famNameOf, money } from '../lib/format';
 
 const SOURCE_LABEL: Record<Source, string> = {
   buy: t('detail.source.buy'),
   craft: t('detail.source.craft'),
   gather: t('detail.source.gather'),
-};
-
-const famName = (id: string): string => {
-  const fam = Calc.parseId(id)?.family ?? id;
-  if (fam.indexOf('JOURNAL_') === 0) {
-    const prof = fam.slice('JOURNAL_'.length);
-    return Calc.JOURNAL[prof] ? Calc.JOURNAL[prof].name : fam;
-  }
-  return Calc.FAMILIES[fam] ? Calc.FAMILIES[fam].name : fam;
 };
 
 const sourceOf = (s: State, fam: string): Source => s.sources[fam] || Calc.defaultSources()[fam];
@@ -42,11 +33,12 @@ function SourceButtons({ id, state, onSource }: { id: string; state: State; onSo
   );
 }
 
-function IngRow({ node, state, depth, onSource }: {
+function IngRow({ node, state, depth, onSource, onOpen }: {
   node: IngredientNode;
   state: State;
   depth: number;
   onSource: (family: string, source: Source) => void;
+  onOpen?: (id: string) => void;
 }) {
   const children = node.children && node.children.length > 0 ? node.children : [];
   return (
@@ -55,7 +47,9 @@ function IngRow({ node, state, depth, onSource }: {
         <div className="flex min-w-0 items-center">
           <Icon fam={Calc.parseId(node.item)?.family ?? node.item} />
           <span className="ml-1.5 truncate text-sm">
-            <span className="font-semibold">{famName(node.item)}</span>
+            <button onClick={() => onOpen && onOpen(node.item)} className="font-semibold hover:underline">
+              {famNameOf(Calc.parseId(node.item)?.family ?? node.item)}
+            </button>
             <span className="text-[var(--muted)]"> × {node.qty}</span>
             {node.sub && (
               <span className="ml-1 text-[10px] uppercase text-[var(--muted)]">↳ {node.sub.name}</span>
@@ -68,17 +62,18 @@ function IngRow({ node, state, depth, onSource }: {
         </div>
       </div>
       {children.map(c => (
-        <IngRow key={c.item} node={c} state={state} depth={depth + 1} onSource={onSource} />
+        <IngRow key={c.item} node={c} state={state} depth={depth + 1} onSource={onSource} onOpen={onOpen} />
       ))}
     </div>
   );
 }
 
-export function IngredientTree({ res, state, journCost, onSource }: {
+export function IngredientTree({ res, state, journCost, onSource, onOpen }: {
   res: { isRaw: boolean; recipe: { journal: string; ingredients: Array<[string, number]> } | null; node: { ingNodes: IngredientNode[] } };
   state: State;
   journCost: number;
   onSource: (family: string, source: Source) => void;
+  onOpen?: (id: string) => void;
 }) {
   if (res.isRaw || !res.recipe) {
     return <div className="text-xs text-[var(--muted)]">{t('detail.rawHint')}</div>;
@@ -89,10 +84,10 @@ export function IngredientTree({ res, state, journCost, onSource }: {
   return (
     <div>
       {res.node.ingNodes.map(n => (
-        <IngRow key={n.item} node={n} state={state} depth={0} onSource={onSource} />
+        <IngRow key={n.item} node={n} state={state} depth={0} onSource={onSource} onOpen={onOpen} />
       ))}
       {journNode && state.journalCounted && (
-        <IngRow key={journNode.item} node={journNode} state={state} depth={0} onSource={onSource} />
+        <IngRow key={journNode.item} node={journNode} state={state} depth={0} onSource={onSource} onOpen={onOpen} />
       )}
     </div>
   );

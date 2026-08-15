@@ -17,3 +17,28 @@ export const cls = (n: number): string => (n >= 0 ? 'pos' : 'neg');
 export const verdict = (n: number): string => (n >= 0 ? 'Rentable' : 'Pas rentable');
 
 export const iconUrl = (fam: string): string => `/img/T4_${fam}.png`;
+
+import { Calc } from '../engine/calc';
+
+export const KIND_LABEL: Record<string, string> = {
+  raw: 'Ressource brute',
+  refined: 'Raffinage',
+  craft: 'Craft',
+  JOURNAL: 'Journal',
+  none: 'Item',
+};
+
+export const famNameOf = (fam: string): string => {
+  if (Calc.FAMILIES[fam]) return Calc.FAMILIES[fam].name;
+  if (fam.indexOf('JOURNAL_') === 0) {
+    const prof = fam.slice('JOURNAL_'.length);
+    return Calc.JOURNAL[prof] ? Calc.JOURNAL[prof].name : fam;
+  }
+  return fam;
+};
+
+export const kindOf = (fam: string): string => {
+  const f = Calc.FAMILIES[fam];
+  if (f) return KIND_LABEL[f.kind];
+  return fam.indexOf('JOURNAL_') === 0 ? KIND_LABEL.JOURNAL : KIND_LABEL.none;
+};

@@ -1,0 +1,163 @@
+import { useState } from 'react';
+import { Calc, type State } from '../engine/calc';
+import { t } from '../i18n';
+import { famNameOf, kindOf, money } from '../lib/format';
+import { Icon } from './Icon';
+
+type Tab = 'details' | 'recipe' | 'used';
+
+function itemFamOf(id: string): string {
+  return Calc.parseId(id)?.family ?? id;
+}
+
+export function ItemPopup({ itemId, state, onClose, onOpen }: {
+  itemId: string;
+  state: State;
+  onClose: () => void;
+  onOpen: (id: string) => void;
+}) {
+  const [tab, setTab] = useState<Tab>('details');
+  const p = Calc.parseId(itemId);
+  const fam = p ? Calc.FAMILIES[p.family] : undefined;
+  const rec = Calc.recipeFor(itemId);
+  const used = Calc.usedIn(itemId);
+  const q = state.selection.quality;
+  const sense = state.sense;
+  const priceBuy = q === 'ev' ? Calc.evPrice(itemId, 'buy', state) : Calc.qPrice(itemId, 'buy', q, sense);
+  const priceSell = q === 'ev' ? Calc.evPrice(itemId, 'sell', state) : Calc.qPrice(itemId, 'sell', q, sense);
+
+  const tabs: Array<[Tab, string]> = [
+    ['details', t('popup.tab.details')],
+    ['recipe', t('popup.tab.recipe', { n: rec && rec.ingredients.length ? rec.ingredients.length + (rec.journal ? 1 : 0) : 0 })],
+    ['used', t('popup.tab.used', { n: used.length })],
+  ];
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 md:items-center md:p-4"
+      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div className="w-full max-w-md rounded-t-2xl border border-[var(--line)] bg-[var(--panel)] shadow-2xl md:rounded-2xl">
+        <div className="flex items-center gap-3 border-b border-[var(--line)] p-4">
+          <Icon fam={itemFamOf(itemId)} alt={itemId} />
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-base font-bold">{famNameOf(itemFamOf(itemId))}</div>
+            <div className="truncate text-xs text-[var(--muted)]">{itemId}</div>
+            <div className="mt-0.5 text-xs text-[var(--muted)]">
+              {t('popup.buy')} {money(priceBuy)} · {t('popup.sell')} {money(priceSell)}
+            </div>
+          </div>
+          <button onClick={onClose} aria-label={t('popup.close')} className="rounded-full px-2.5 py-1 text-xl leading-none text-[var(--muted)] hover:bg-[var(--panel2)]">
+            ×
+          </button>
+        </div>
+
+        <div className="flex gap-1 border-b border-[var(--line)] px-3 pt-2">
+          {tabs.map(([key, label]) => (
+            <button
+              key={key}
+              onClick={() => setTab(key)}
+              className={`rounded-t-lg px-3 py-2 text-xs font-bold ${tab === key ? 'border-b-2 border-[var(--accent)] text-[var(--fg)]' : 'text-[var(--muted)]'}`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        <div className="max-h-[60vh] overflow-y-auto p-4">
+          {tab === 'details' && (
+            <>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between"><span className="text-[var(--muted)]">{t('popup.type')}</span><span>{kindOf(itemFamOf(itemId))}</span></div>
+                <div className="flex justify-between">
+                  <span className="text-[var(--muted)]">{t('popup.tier')}</span>
+                  <span>{p?.tier}{p?.enchant ? ` .${p.enchant}` : ''}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-[var(--muted)]">{t('popup.quality')}</span>
+                  <span>{q === 'ev' ? t('popup.quality.ev') : `Q${q}`}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-[var(--muted)]">{t('popup.buy')}</span>
+                  <span>{money(priceBuy)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-[var(--muted)]">{t('popup.sell')}</span>
+                  <span>{money(priceSell)}</span>
+                </div>
+                {fam?.base !== undefined && (
+                  <div className="flex justify-between">
+                    <span className="text-[var(--muted)]">{t('popup.base')}</span>
+                    <span>{money(fam.base)}</span>
+                  </div>
+                )}
+              </div>
+              <p className="mt-3 text-xs leading-relaxed text-[var(--muted)]">{fam?.kind === 'raw' ? t('popup.note.raw') : fam?.kind === 'refined' ? t('popup.note.refined') : fam?.kind === 'craft' ? t('popup.note.craft') : t('popup.note.journal')}</p>
+            </>
+          )}
+
+          {tab === 'recipe' && (
+            rec && rec.ingredients.length ? (
+              <>
+                <div className="space-y-1.5">
+                  {rec.ingredients.map(([ingId, qty]) => (
+                    <button
+                      key={ingId}
+                      onClick={() => onOpen(ingId)}
+                      className="flex w-full items-center gap-2 rounded-lg border border-[var(--line)] bg-[var(--panel2)] px-2.5 py-1.5 text-left"
+                    >
+                      <Icon fam={itemFamOf(ingId)} />
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-sm font-bold">{famNameOf(itemFamOf(ingId))}</span>
+                        <span className="block text-xs text-[var(--muted)]">{ingId} × {qty}</span>
+                      </span>
+                    </button>
+                  ))}
+                  {rec.journal && (
+                    <button
+                      onClick={() => onOpen(rec.journal)}
+                      className="flex w-full items-center gap-2 rounded-lg border border-[var(--line)] bg-[var(--panel2)] px-2.5 py-1.5 text-left"
+                    >
+                      <Icon fam={itemFamOf(rec.journal)} />
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-sm font-bold">{famNameOf(itemFamOf(rec.journal))}</span>
+                        <span className="block text-xs text-[var(--muted)]">{rec.journal} × 1</span>
+                      </span>
+                    </button>
+                  )}
+                </div>
+                <p className="mt-3 text-xs text-[var(--muted)]">
+                  {t('popup.craftTime', { time: rec.timeSec })}{rec.journal ? ` · ${t('popup.journalNote')}` : ''}
+                </p>
+              </>
+            ) : (
+              <p className="text-xs text-[var(--muted)]">{t('popup.noRecipe')}</p>
+            )
+          )}
+
+          {tab === 'used' && (
+            used.length ? (
+              <div className="space-y-1.5">
+                {used.map(u => (
+                  <button
+                    key={u}
+                    onClick={() => onOpen(u)}
+                    className="flex w-full items-center gap-2 rounded-lg border border-[var(--line)] bg-[var(--panel2)] px-2.5 py-1.5 text-left"
+                  >
+                    <Icon fam={itemFamOf(u)} />
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-bold">{famNameOf(itemFamOf(u))}</span>
+                      <span className="block text-xs text-[var(--muted)]">{kindOf(itemFamOf(u))} · {t('popup.usedAs')}</span>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-[var(--muted)]">{t('popup.noUsed')}</p>
+            )
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

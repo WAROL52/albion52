@@ -7,6 +7,7 @@ import { Verdict } from './components/Verdict';
 import { Icon } from './components/Icon';
 import { PriceBar } from './components/PriceBar';
 import { Settings } from './components/Settings';
+import { ItemPopup } from './components/ItemPopup';
 import { cls } from './lib/format';
 
 const makeState = (): State => ({ ...Calc.DEFAULTS, sources: { ...Calc.DEFAULTS.sources } });
@@ -17,6 +18,7 @@ export default function App() {
   const [state, dispatch] = useReducer(reducer, undefined, makeState);
   const [path, setPath] = useState<Crumb[]>([]);
   const [feed, setFeed] = useState<PriceFeed>(getFeed);
+  const [popup, setPopup] = useState<string | null>(null);
 
   const outId = Calc.itemId(state.selection.family, state.selection.tier, state.selection.enchant);
 
@@ -28,6 +30,7 @@ export default function App() {
   const setSource = (family: string, source: Source) => dispatch({ type: 'SET_SOURCE', family, source });
   const reset = () => {
     setPath([]);
+    setPopup(null);
     dispatch({ type: 'RESET' });
   };
 
@@ -48,6 +51,7 @@ export default function App() {
               onTo={i => setPath(p => (i < 0 ? [] : p.slice(0, i + 1)))}
               onSelect={sel}
               onReset={reset}
+              onOpen={setPopup}
             />
             <PriceBar outId={outId} onSynced={syncPrices} />
             <Settings state={state} dispatch={dispatch} />
@@ -69,9 +73,13 @@ export default function App() {
             {res.isRaw ? fam.name : r?.desc}
           </div>
 
-          <Verdict res={res} qty={state.quantity} state={state} onSource={setSource} />
+          <Verdict res={res} qty={state.quantity} state={state} onSource={setSource} onOpen={setPopup} />
         </div>
       </div>
+
+      {popup && (
+        <ItemPopup itemId={popup} state={state} onClose={() => setPopup(null)} onOpen={setPopup} />
+      )}
     </div>
   );
 }
