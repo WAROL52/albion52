@@ -1,0 +1,24 @@
+@import 'tailwindcss';
+
+:root {
+  --accent: #d9a441;
+  --bg: #141117;
+  --panel: #1f1b27;
+  --panel2: #282231;
+  --line: #3a3343;
+  --fg: #ece6f0;
+  --muted: #a69bb2;
+  --pos: #63b85f;
+  --neg: #d15b5b;
+  --blue: #6aaed8;
+  --silver: #d6dae0;
+  --silver-hi: #f0f2f5;
+  --time: #8fc7de;
+}
+
+body {
+  background: radial-gradient(1200px 800px at 70% -10%, #1c1626 0%, var(--bg) 55%);
+  color: var(--fg);
+  font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+  line-height: 1.45;
+}
