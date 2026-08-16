@@ -55,6 +55,20 @@ Le profit attendu d'un craft rapporté au temps de craft réel de sa recette. KP
 **Marge craft vs acheter**:
 L'écart entre le coût de production d'un item et son prix d'achat direct au marché.
 
+**Source d'approvisionnement**:
+La manière d'obtenir un item : acheter au marché, crafter, ou récolter. Chaque famille a une source par défaut (raw→récolte, raffiné→craft, craft→achat).
+_Avoid_: méthode d'acquisition, provenance
+
+**Épingle de source**:
+Un choix explicite de l'utilisateur pour une famille (`{ source, enabled: true }`) ; il bat les défauts et l'héritage. Les entrées non épinglées du SourceConfig ne sont pas autoritaires.
+_Avoid_: préférence, réglage de source
+
+**Propagation de source**:
+La règle d'application récursive des choix de source à travers l'arbre d'ingrédients : `none` (par famille), `parent` (les enfants sans épingle héritent du parent), `all` (la source de l'item racine s'applique à tout l'arbre).
+
+**Contexte de source**:
+Le paramètre du seam de calcul portant config, propagation, source parente et source racine ; injectable explicitement dans `compute`/`computeRecipe`/`computeIngredient`, sinon repli sur l'état global.
+
 **Sens de marché**:
 La politique d'exécution des ordres : par défaut, achat instantané pour les ressources, vente instantanée pour le produit fini. Réglable par profil.
 _Avoid_: mode de trading, stratégie de prix

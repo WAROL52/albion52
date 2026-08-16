@@ -1,0 +1,7 @@
+# Modèle SourceConfig : choix de source des ingrédients
+
+Le choix utilisateur d'approvisionnement (acheter / crafter / récolter) est un modèle explicite et unique, porté par l'état global et traversant le moteur de calcul : `SourceConfig = { [famille]: { source, enabled } }`, où `enabled` marque une épingle explicite de l'utilisateur (les entrées non épinglées sont des défauts non autoritaires). Le legacy `state.sources` reste la lecture par défaut tant qu'aucune épingle n'existe ; `SET_SOURCE` synchronise les deux, `RESET` rétablit les défauts non épinglés.
+
+Le moteur de calcul est pur et testable via un **seam** : `SourceContext` (config, propagation, source parente, source racine) est un paramètre optionnel de `compute`/`computeRecipe`/`computeIngredient`, avec repli sur l'état quand il est absent (backward compatible). La résolution d'une source suit l'ordre : racine (`all`) → épingle → héritage parent (`parent`) → sources legacy → défaut par famille (raw→récolte, raffiné→craft, craft→achat).
+
+La propagation de source est récursive à travers l'arbre d'ingrédients : `none` (chaque famille décide), `parent` (les enfants sans épingle héritent de la source du parent, une épingle enfant bat l'héritage), `all` (la source de l'item racine s'applique à tout l'arbre, épingles incluses). `recipeFor(itemId, state, ctx)` est source-aware : `Recipe.ingSources` liste la source effective par ingrédient (avec repli sur la source par défaut si la source résolue est incompatible, ex. récolte sur un raffiné), pour l'affichage UI (popup) sans coût de calcul.
