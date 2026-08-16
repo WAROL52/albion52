@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { Calc, type State } from './calc';
+import { Calc, type SourceConfig, type State } from './calc';
 
 const state = (): State => ({ ...Calc.DEFAULTS, sources: { ...Calc.DEFAULTS.sources } });
 
@@ -92,5 +92,24 @@ describe('compute — coût complet et rentabilité', () => {
     const craftCostPerUnit = res.node.cost / s.quantity;
     expect(res.craftCostPerUnit).toBeCloseTo(craftCostPerUnit, 5);
     expect(res.craftVsBuy).toBeCloseTo(res.buyCostPerUnit - craftCostPerUnit, 5);
+  });
+
+  it('seam : une sourceConfig injectée force l\'approvisionnement par famille', () => {
+    const s = state();
+    const cfg: SourceConfig = { ORE: { source: 'buy', enabled: true } };
+    const base = Calc.computeRecipe(Calc.recipeFor('T4_METALBAR')!, 10, s, 0);
+    const forced = Calc.computeRecipe(Calc.recipeFor('T4_METALBAR')!, 10, s, 0, undefined, cfg);
+    expect(base.ingNodes[0].source).toBe('gather');
+    expect(forced.ingNodes[0].source).toBe('buy');
+    expect(forced.cost).toBeGreaterThan(base.cost);
+  });
+
+  it('seam : compute accepte sourceConfig en paramètre, undefined retombe sur state.sourceConfig', () => {
+    const s = state();
+    const cfg: SourceConfig = { ORE: { source: 'buy', enabled: true } };
+    const viaParam = Calc.compute(s, undefined, cfg);
+    const viaState = Calc.compute({ ...s, sourceConfig: cfg });
+    expect(viaParam.node.cost).toBe(viaState.node.cost);
+    expect(viaParam.node.cost).toBeGreaterThan(Calc.compute(s).node.cost);
   });
 });

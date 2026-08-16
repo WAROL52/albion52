@@ -1,6 +1,7 @@
 export type Tier = 'T2' | 'T3' | 'T4' | 'T5' | 'T6' | 'T7' | 'T8';
 export type FamilyKind = 'raw' | 'refined' | 'craft';
 export type Source = 'buy' | 'craft' | 'gather';
+export type SourceEntry = { source: Source | undefined; enabled: boolean };export type SourceConfig = Record<string, SourceEntry>;
 export type Sense = 'instant' | 'orders';
 export type Quality = 'ev' | 1 | 2 | 3 | 4 | 5;
 
@@ -56,6 +57,7 @@ export interface State {
   returnWithFocus: number;
   sense: Sense;
   sources: Sources;
+  sourceConfig: Record<string, SourceEntry> | undefined;
 }
 
 export type Action =
@@ -344,7 +346,6 @@ const recipeFor = (itId: string): Recipe | null => {
     quality: true,
   };
 };
-
 const recipeProducing = (id: string): Recipe | null => recipeFor(id);
 
 const usedIn = (itId: string): string[] => {
@@ -362,7 +363,7 @@ const usedIn = (itId: string): string[] => {
 
 const SOURCES: Record<string, Source> = { buy: 'buy', craft: 'craft', gather: 'gather' };
 
-const defaultSource = (fam: string): Source =>
+export const defaultSource = (fam: string): Source =>
   FAMILIES[fam].kind === 'raw' ? 'gather' : FAMILIES[fam].kind === 'refined' ? 'craft' : 'buy';
 
 const defaultSources = (): Sources => {
@@ -372,7 +373,15 @@ const defaultSources = (): Sources => {
   return m;
 };
 
-const sourceOptions = (id: string): Source[] => {
+/** Config par défaut : sources par défaut, non épinglées (enabled=false) → les sources legacy restent autoritaires */
+const defaultSourceConfig = (): SourceConfig => {
+  const m: SourceConfig = {};
+  Object.keys(FAMILIES).forEach(f => (m[f] = { source: defaultSource(f), enabled: false }));
+  Object.keys(JOURNAL).forEach(j => (m['JOURNAL_' + j] = { source: 'buy', enabled: false }));
+  return m;
+};
+
+export const sourceOptions = (id: string): Source[] => {
   const opts: Source[] = ['buy'];
   const f = FAMILIES[parseId(id)?.family ?? ''];
   if (f && f.kind !== 'raw') opts.push('craft');
@@ -391,6 +400,7 @@ const DEFAULTS: State = {
   returnWithFocus: 0.65,
   sense: 'instant',
   sources: defaultSources(),
+  sourceConfig: defaultSourceConfig(),
 };
 
 const sourceOf = (s: State, id: string): Source => {
@@ -398,24 +408,32 @@ const sourceOf = (s: State, id: string): Source => {
   return s.sources[fam] || defaultSource(fam);
 };
 
+/** Retourne la source effective : entrée épinglée de sourceConfig (enabled) sinon state.sources sinon defaultSource */
+const effectiveSource = (s: State, sourceConfig: SourceConfig | undefined, id: string): Source => {
+  const cfg = sourceConfig ?? s.sourceConfig;
+  const entry = cfg?.[parseId(id)?.family ?? ''];
+  if (entry?.enabled && entry.source) return entry.source;
+  return sourceOf(s, id);
+};
+
 const MAX_DEPTH = 6;
 
-const computeIngredient = (itemId: string, qty: number, s: State, depth: number, feed?: PriceFeed): IngredientNode => {
-  const source = sourceOf(s, itemId);
+const computeIngredient = (itemId: string, qty: number, s: State, depth: number, feed?: PriceFeed, sourceConfig?: SourceConfig): IngredientNode => {
+  const source = effectiveSource(s, sourceConfig, itemId);
   if (source === 'gather')
     return { item: itemId, source, qty, cost: 0, timeSec: 0, children: [] };
   if (source === 'craft' && depth < MAX_DEPTH) {
     const sub = recipeProducing(itemId);
     if (sub) {
-      const node = computeRecipe(sub, qty, s, depth + 1, feed);
+      const node = computeRecipe(sub, qty, s, depth + 1, feed, sourceConfig);
       return { item: itemId, source, qty, sub, cost: node.cost, timeSec: node.timeSec, children: node.ingNodes };
     }
   }
   return { item: itemId, source: 'buy', qty, cost: priceOf(itemId, 'buy', s.sense, feed) * qty, timeSec: 0, children: [] };
 };
 
-const computeRecipe = (recipe: Recipe, qty: number, s: State, depth: number, feed?: PriceFeed): RecipeNode => {
-  const ingNodes = recipe.ingredients.map(([id, iqty]) => computeIngredient(id, iqty * qty, s, depth, feed));
+const computeRecipe = (recipe: Recipe, qty: number, s: State, depth: number, feed?: PriceFeed, sourceConfig?: SourceConfig): RecipeNode => {
+  const ingNodes = recipe.ingredients.map(([id, iqty]) => computeIngredient(id, iqty * qty, s, depth, feed, sourceConfig));
   const gross = ingNodes.reduce((t, n) => t + n.cost, 0);
   const rate = s.focus ? s.returnWithFocus : s.returnNoFocus;
   const net = gross * (1 - rate);
@@ -435,14 +453,14 @@ const computeRecipe = (recipe: Recipe, qty: number, s: State, depth: number, fee
   };
 };
 
-const compute = (s: State, feed?: PriceFeed): ComputeResult => {
+const compute = (s: State, feed?: PriceFeed, sourceConfig?: SourceConfig): ComputeResult => {
   const sel = s.selection;
   const outId = itemId(sel.family, sel.tier, sel.enchant);
   const recipe = recipeFor(outId);
   const isRaw = !recipe;
   const node = isRaw
     ? { recipe: null, qty: s.quantity, ingNodes: [], gross: 0, rate: 0, net: 0, fee: 0, journ: 0, cost: 0, timeSec: 0 }
-    : computeRecipe(recipe!, s.quantity, s, 0, feed);
+    : computeRecipe(recipe!, s.quantity, s, 0, feed, sourceConfig);
   const sellPerUnit = sel.quality === 'ev'
     ? evPrice(outId, 'sell', s, feed)
     : qPrice(outId, 'sell', sel.quality, s.sense, feed);
@@ -476,8 +494,14 @@ const reduce = (s: State, action: Action): State => {
     case 'SET_TAX': return { ...s, marketTaxPct: clamp(action.value, 0, 100) };
     case 'SET_QTY': return { ...s, quantity: clamp(Math.round(action.value), 1, 10000) };
     case 'SET_SELECTION': return { ...s, selection: { ...s.selection, ...action.value } };
-    case 'SET_SOURCE': return { ...s, sources: { ...s.sources, [action.family]: action.source } };
-    case 'RESET': return { ...DEFAULTS, sources: defaultSources() };
+    case 'SET_SOURCE': {
+    const newSources = { ...s.sources, [action.family]: action.source };
+    // Nouveau modèle : sourceConfig optional, héritage du default si non défini
+    const newSourceEntry: SourceEntry = { source: action.source, enabled: true };
+    const newSourceConfig = { ...s.sourceConfig, [action.family]: newSourceEntry };
+    return { ...s, sources: newSources, sourceConfig: newSourceConfig };
+}
+    case 'RESET': return { ...DEFAULTS, sources: defaultSources(), sourceConfig: defaultSourceConfig() };
     default: return s;
   }
 };

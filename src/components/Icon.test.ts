@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { Calc } from '../engine/calc.ts';
 import { iconUrlFallback, iconDir } from '../lib/iconDir.ts';
 
-function variantOf(itemId?: string, state?: { selection?: { quality?: string } }): {
+function variantOf(itemId?: string, state?: { selection?: { quality?: string | number } }): {
   tier: string;
   enchant: number;
   quality: number;

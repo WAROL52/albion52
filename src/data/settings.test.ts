@@ -16,6 +16,7 @@ describe('persistance des réglages', () => {
       returnWithFocus: 0.65,
       sense: 'orders',
       sources: { METALBAR: 'buy' },
+      sourceConfig: undefined,
     });
     const s = loadSettings();
     expect(s.selection).toEqual({ family: 'MAIN_SWORD', tier: 'T5', enchant: 2, quality: 3 });

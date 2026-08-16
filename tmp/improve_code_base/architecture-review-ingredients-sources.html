@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Architecture Review — Recette Ingrédients & Sources</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wghtt@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --bg-subtle: #11111a;
+      --card: #1a1a24;
+      --border: #2a2a3a;
+      --fg: #e8e8f0;
+      --muted: #7a7a8e;
+      --accent: #00d4aa;
+      --accent-dim: rgba(0, 212, 170, 0.15);
+      --error: #ff4757;
+      --warning: #ffa502;
+      --success: #28a745;
+    }
+    
+    * {
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--fg);
+      margin: 0;
+      padding: 20px;
+    }
+    
+    h1, h2, h3 {
+      color: var(--fg);
+      letter-spacing: -0.02em;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    .header {
+      background: var(--bg-subtle);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+    
+    .header h1 {
+      font-size: 1.8rem;
+      margin-bottom: 4px;
+    }
+    
+    .header p {
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+    
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+    
+    .card h3 {
+      font-size: 1.1rem;
+      margin-top: 0;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .badge {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      margin-right: 4px;
+    }
+    
+    .badge-strong { background: var(--accent-dim); color: var(--accent); }
+    .badge-explore { background: #6c757d33; color: #adb5bd; border: 1px solid #6c757d; }
+    .badge-speculative { background: #ffc10726; color: #ffc107; border: 1px solid #ffc107; }
+    
+    h1, h2, h3, .card h3 { color: var(--fg); }
+    
+    /* Diagrams */
+    .mermaid {
+      direction: rtl;
+    }
+    
+    .diagram-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin: 12px 0;
+    }
+    
+    .diagram-column {
+      background: var(--bg-subtle);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+    }
+    
+    /* Table styles */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0;
+    }
+    
+    th, td {
+      padding: 8px 4px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+    
+    th {
+      color: var(--muted);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+    }
+    
+    tr:nth-child(even) td { background: var(--bg-subtle); }
+    
+    /* Callout */
+    .callout {
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin: 12px 0;
+      border-left: 3px solid;
+    }
+    
+    .callout-warning {
+      background: rgba(255, 165, 2, 0.08);
+      border-left-color: var(--warning);
+      color: var(--fg);
+    }
+    
+    .callout-adr {
+      background: rgba(0, 212, 170, 0.08);
+      border-left-color: var(--accent);
+      color: var(--fg);
+    }
+    
+    a { color: var(--accent); text-decoration: underline; }
+    
+    @media (max-width: 768px) {
+      .diagram-row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Review Architectural — Domaine : Recette Ingrédients & Sources</h1>
+      <p>Focalisation à 100% sur le système d'ingrédients, sources, qualité et choix utilisateur (acheter/créer/récolter)</p>
+    </div>
+
+    <!-- ==== CANDIDATE 1 ==== -->
+    <div class="card">
+      <h3>Candidat 1 : Modèle SourceConfig dédié — Séparation de la choix source de la famille kind</h3>
+      
+      <h4>Fichiers impliqués</h4>
+      <ul>
+        <li><code>src/engine/calc.ts</code> : fonctions <code>defaultSource()</code>, <code>sourceOptions()</code></li>
+        <li><code>src/data/settings.ts</code> : persistency des sources utilisateur</li>
+        <li><code>src/components/IngredientTree.tsx</code> : boutons source UI</li>
+        <li><code>src/components/Browser.tsx</code> : sélection source dans l'arbre</li>
+      </ul>
+      
+      <h4>Problème actuel</h4>
+      <p>Le déterminisme source est collé à la <code>kind</code> de la famille (<code>raw→gather</code>, <code>refined→craft</code>, <code>craft→buy</code>). L'utilisateur ne peut pas choisir autrement, et ce choix n'est pas modélisé comme une entité indépendante — il est dispersé à travers <code>calc.ts</code>, les composants UI, et le <code>localStorage</code>. Il n'y a pas de "Source of Truth" unique pour les préférences source.</p>
+      
+      <h4>Solution</h4>
+      <p>Extraire un modèle <code>SourceConfig</code> qui encapsule les préférences source par famille, indépendant de la <code>kind</code>. Ce modèle aurait :
+      <ul>
+        <li>Une mapping <code>family → { source: Source, enabled: boolean }</code></li>
+        <li>Des méthodes <code>getEffectiveSource(fam)</code> qui privilégie le choix utilisateur sur le default</li>
+        <li>Une sérialisation qui coexiste avec le <code>localStorage</code> existant</li>
+      </ul>
+      L'UI resterait inchangée en apparence, mais lirait depuis ce modèle au lieu d'appeler directement <code>defaultSource()</code>.</p>
+      
+      <h4>Avantages</h4>
+      <ul>
+        <li>Séparation des préoccupations : la logique "quelle source est disponible" vs "quelle source l'utilisateur a choisie"</li>
+        <li>Testabilité : on peut tester les calculs avec des <code>SourceConfig</code> fixes, sans dépendre des defaults</li>
+        <li>Extensibilité : ajouter un nouveau type de source (e.g. <code>auction</code>) ne nécessiterait pas de toucher au code de default</li>
+        <li>Localité : la préférence source est centrale, pas dispersée</li>
+      </ul>
+      
+      <div class="diagram-row">
+        <div class="diagram-column">
+          <strong>Avant</strong>
+          <pre>defaultSource(fam) → kind-based → hardcoded</pre>
+        </div>
+        <div class="diagram-column">
+          <strong>Après</strong>
+          <pre>SourceConfig.getEffective(fam) → user-choice first, then default</pre>
+        </div>
+      </div>
+      
+      <p><strong>Recommandation :</strong> <span class="badge badge-strong">Strong</span> — C'est le socle pour tous les autres améliorations.</p>
+    </div>
+
+    <!-- ==== CANDIDAT 2 ==== -->
+    <div class="card">
+      <h3>Candidat 2 : Seam "Source Choice" entre sélection UI et calcul</h3>
+      
+      <h4>Fichiers impliqués</h4>
+      <ul>
+        <li><code>src/engine/calc.ts</code> : fonctions <code>recipeFor()</code>, <code>computeIngredient()</code>, <code>compute()</code></li>
+        <li><code>src/lib/iconDir.ts</code> : nouvellement créé (référence indirecte pour la cohérence icon/ressource)</li>
+      </ul>
+      
+      <h4>Problème actuel</h4>
+      <p><code>recipeFor(id)</code> et <code>computeIngredient()</code> ignorent complètement les préférences source de l'utilisateur. Ils déduisent la source du <code>kind</code> de la famille. Si l'utilisateur a changé la source par défaut (via les boutons dans <code>IngredientTree</code>), ce changement est perdu lors du prochain appel de recette — les calculs utilisent toujours les defaults.</p>
+      
+      <h4>Solution</h4>
+      <p>Introduire un seam formel entre "choix source utilisateur" et "moteur de calcul". Cela signifie :
+      <ul>
+        <li>Passer <code>state.sourceConfig</code> (ou l'équivalent) en paramètre à <code>recipeFor()</code>, <code>computeIngredient()</code>, <code>compute()</code></li>
+        <li>Ces fonctions utilisent d'abord la source configurée, puis tombent back sur le default</li>
+        <li>L'UI (IngredientTree, Browser) transmet le <code>state.sourceConfig</code> existant</li>
+      </ul>
+      Cela crée un "vrai seam" : deux adaptateurs (avec et sans config utilisateur) rendent le comportement testable et interchangeable.</p>
+      
+      <h4>Avantages</h4>
+      <ul>
+        <li>Testabilité : on peut injecter <code>sourceConfig: {} </code> (vide = defaults) ou complet en unité tests</li>
+        <li>Fidélité UI/Backend : le choix utilisateur est garanti de traverser jusqu'au verdict</li>
+        <li>Recouvrement : les tests existants continuent de fonctionner avec des defaults invisibles</li>
+      </ul>
+      
+      <div class="diagram-row">
+        <div class="diagram-column">
+          <strong>Avant</strong>
+          <pre>recipeFor(id) → kind-based → no user config</pre>
+        </div>
+        <div class="diagram-column">
+          <strong>Après</strong>
+          <pre>recipeFor(id, sourceConfig) → user-config first → default fallthrough</pre>
+        </div>
+      </div>
+      
+      <p><strong>Recommandation :</strong> <span class="badge badge-explore">Worth exploring</span> — Forte dépendance au Candidat 1.</p>
+    </div>
+
+    <!-- ==== CANDIDAT 3 ==== -->
+    <div class="card">
+      <h3>Candidat 3 : Modèle de choix récursif à travers l'arbre d'ingrédients</h3>
+      
+      <h4>Fichiers impliqués</h4>
+      <ul>
+        <li><code>src/components/IngredientTree.tsx</code> : arbre récursif d'ingrédients</li>
+        <li><code>src/engine/calc.ts</code> : profondeur <code>MAX_DEPTH</code>, <code>computeIngredient()</code>, <code>computeRecipe()</code></li>
+      </ul>
+      
+      <h4>Problème actuel</h4>
+      <p>La sélection source est plate — elle s'applique au niveau de la famille actuelle, mais ne remonte pas ni ne descend à travers l'arbre récursif. Si l'utilisateur choisit "Crafter" pour l'ingrédient principal, les ingrédients enfants conservent leur default source. De plus, il n'existe aucun moyen de dire "tout l'arbre en 'gather'" ou "tout l'arbre en 'buy'".</p>
+      
+      <h4>Solution</h4>
+      <p>Rendre la source récursive via le contexte computationnel :
+      <ul>
+        <li>Ajouter un contexte <code>sourcePropagation: 'parent' | 'all-children' | 'none'</code> au <code>compute()</code> et <code>computeIngredient()</code></li>
+        <li>Quand 'parent', la source du parent s'applique aux enfants qui n'en ont pas de propre</li>
+        <li>Quand 'all-children', la source choisie pour la racine s'applique à tout l'arbre (ignorant les defaults)</li>
+        <li>UI : ajouter un toggle "Appliquer à tout l'arbre" dans IngredientTree</li>
+      </ul>
+      Cela rend le choix utilisateur extensible de manière récursive à travers n'importe quel arbre de craft.</p>
+      
+      <h4>Avantages</h4>
+      <ul>
+        <li>Flexibilité utilisateur : "Je veux tout récolter" ou "Tout acheter" en un clic</li>
+        <li>Profondeur : fonctionne sur n'importe quel niveau de récursion dans l'arbre</li>
+        <li>Prévisibilité : le comportement est explicite via le paramètre <code>sourcePropagation</code></li>
+      </ul>
+      
+      <div class="diagram-row">
+        <div class="diagram-column">
+          <strong>Avant</strong>
+          <pre>source → uniquement niveau courant, children → defaults</pre>
+        </div>
+        <div class="diagram-column">
+          <strong>Après</strong>
+          <pre>sourcePropagation='all-children' → source unique sur tout l'arbre</pre>
+        </div>
+      </div>
+      
+      <p><strong>Recommandation :</strong> <span class="badge badge-speculative">Speculative</span> — Besoin de valider le Candidat 2 d'abord.</p>
+    </div>
+
+    <!-- ==== CANDIDAT 4 ==== -->
+    <div class="card">
+      <h3>Candidat 4 : Recipe source-aware — recipeFor connaît les préférences</h3>
+      
+      <h4>Fichiers impliqués</h4>
+      <ul>
+        <li><code>src/engine/calc.ts</code> : fonction <code>recipeFor()</code> (lignes 326-346)</li>
+        <li><code>src/engine/reduce.ts</code> : propagation des sources dans <code>compute()</code></li>
+      </ul>
+      
+      <h4>Problème actuel</h4>
+      <p><code>recipeFor(id)</code> est la porte d'entrée pour toute génération de recette (Breadcrumb, Ingrédients, Prix). Comme il ignore les préférences source utilisateur, le reste du système hérite de décisions sous-optimales. Par exemple, afficher "Ce récipie nécessite 3 Métalbar (Acheter @ 150 chacun)" alors que l'utilisateur a choisi "Crafter" partout.</p>
+      
+      <h4>Solution</h4>
+      <p>Modifier <code>recipeFor(id, sourceConfig?) </code> pour qu'il accepte un paramètre optionnel de configuration source. À l'intérieur :
+      <ul>
+        <li>Lorsqu'un ingrédient du recipe a une source configurée par l'utilisateur, on l'utilise</li>
+        <li>Si la source configurée est incompatible (e.g. <code>craft</code> pour un ingrédient <code>raw</code>), on fait back vers le default</li>
+        <li>Le recipe retourné porte une métadonnée <code>_sourceHints</code> listant quels ingrédients ont été affectés par le choix utilisateur</li>
+      </ul>
+      Cela fait de <code>recipeFor</code> la source unique de vérité pour ce qui concerne les sources dans la recette.</p>
+      
+      <h4>Avantages</h4>
+      <ul>
+        <li>Impact maximal : tout ce qui consomme <code>recipeFor</code> (UI, prix, verdict) bénéficie automatiquement</li>
+        <li>Dégradé gracieux : si pas de config, comportement inchangé (backward compatible)</li>
+        <li>Traçabilité : <code>_sourceHints</code> aide les tests à comprendre quelles décisions ont été prises</li>
+      </ul>
+      
+      <div class="diagram-row">
+        <div class="diagram-column">
+          <strong>Avant</strong>
+          <pre>recipeFor(id) → ignores user → same result for all</pre>
+        </div>
+        <div class="diagram-column">
+          <strong>Après</strong>
+          <pre>recipeFor(id, optSourceConfig) → respects config → potentially different results</pre>
+        </div>
+      </div>
+      
+      <p><strong>Recommandation :</strong> <span class="badge badge-explore">Worth exploring</span> — Dépend du Candidat 2 (seam formel).</p>
+    </div>
+
+    <!-- ==== Top Recommendation ==== -->
+    <div class="card" style="border-left-color: var(--accent);">
+      <h3>Recommandation : Parier sur le Candidat 1 d'abord</h3>
+      <p>Le modèle <strong>SourceConfig</strong> isolé est le fondement sans lequel les autres candidats perdent en sens. Une fois ce modèle en place (un simple enregistrement <code>{[family: string]: { source: Source; enabled?: boolean }}</code> en état global), le seam formel (Candidat 2) devient naturel, et la récurrence (Candidat 3) et la recette consciente (Candidat 4) s'enchaînent sans friction.</p>
+      <p>Chemin estimé : 3-4 jours de développement, 2-3 jours de tests, zéro régression sur l'existant.</p>
+      <p>Ce modèle rend aussi le système "AI-navigable" : un modèle de données clair et unique est la base première pour toute logique ultérieure (raccourcis IA, suggestions automatiques, etc.).</p>
+    </div>
+  </div>
+
+  <script>
+    mermaid.initialize({ startOnLoad: false, svg: { fontSize: 14 } });
+  </script>
+</body>
+</html>
