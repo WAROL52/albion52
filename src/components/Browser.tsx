@@ -1,5 +1,6 @@
-import { Calc, type CatalogItem, type Selection, type State, type Tier } from '../engine/calc';
+import { Calc, type CatalogItem, type PriceFeed, type Selection, type State, type Tier } from '../engine/calc';
 import { t } from '../i18n';
+import { fmt } from '../lib/format';
 import { Icon } from './Icon';
 
 export interface Crumb {
@@ -10,6 +11,7 @@ export interface Crumb {
 interface BrowserProps {
   selection: Selection;
   state: State;
+  feed: PriceFeed;
   path: Crumb[];
   onPush: (crumb: Crumb) => void;
   onTo: (i: number) => void;
@@ -31,10 +33,11 @@ const kindLabel = (fam: string): string => {
   return t('browser.kind.craft');
 };
 
-export function Browser({ selection, state, path, onPush, onTo, onSelect, onReset, onOpen }: BrowserProps) {
+export function Browser({ selection, state, feed, path, onPush, onTo, onSelect, onReset, onOpen }: BrowserProps) {
   const node = nodeAt(path);
   const fam = Calc.FAMILIES[selection.family];
   const outId = Calc.itemId(selection.family, selection.tier, selection.enchant);
+  const price = feed[outId];
 
   const tiles = node.subs
     ? node.subs.map(sub => (
@@ -68,6 +71,11 @@ export function Browser({ selection, state, path, onPush, onTo, onSelect, onRese
           <button onClick={() => onSelect({ family: f })} className="flex-1 text-left">
             <span className="block text-sm font-bold">{Calc.FAMILIES[f].name}</span>
             <span className="block text-xs text-[var(--muted)]">{kindLabel(f)}</span>
+            {selection.family === f && price && (
+              <span className="mt-0.5 block text-xs tabular-nums text-[var(--silver)]">
+                {t('prices.sell')} {fmt(price.bid[0])} · {t('prices.buy')} {fmt(price.ask[0])}
+              </span>
+            )}
           </button>
           {selection.family === f && <span className="text-[var(--accent)]">✓</span>}
         </div>
@@ -106,6 +114,11 @@ export function Browser({ selection, state, path, onPush, onTo, onSelect, onRese
         <div className="min-w-0 flex-1">
           <div className="truncate text-sm font-bold">{fam.name}</div>
           <div className="truncate text-xs text-[var(--muted)]">{outId}</div>
+          {price && (
+            <div className="truncate text-xs tabular-nums text-[var(--silver)]">
+              {t('prices.sell')} {fmt(price.bid[0])} · {t('prices.buy')} {fmt(price.ask[0])}
+            </div>
+          )}
         </div>
         <button onClick={onReset} className="rounded-full border border-[var(--neg)] bg-[#221011] px-3 py-1 text-xs text-[var(--neg)]">
           {t('browser.reset')}

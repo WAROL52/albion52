@@ -54,6 +54,7 @@ export default function App() {
             <Browser
               selection={state.selection}
               state={state}
+              feed={feed}
               path={path}
               onPush={c => setPath(p => [...p, c])}
               onTo={i => setPath(p => (i < 0 ? [] : p.slice(0, i + 1)))}
