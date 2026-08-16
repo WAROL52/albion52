@@ -58,6 +58,23 @@ describe('prix du marché (feed AODP injecté)', () => {
     expect(Calc.priceOf('T5_MAIN_SWORD', 'buy', 'instant', f)).toBe(Calc.priceOf('T5_MAIN_SWORD', 'buy', 'instant'));
   });
 
+  it('repli Q1 × multiplicateur quand une qualité est absente du feed', () => {
+    const f = { T4_MAIN_SWORD: { ask: [1000, 0, 0, 0, 0], bid: [950, 0, 0, 0, 0] } };
+    expect(Calc.qPrice('T4_MAIN_SWORD', 'sell', 1, 'instant', f)).toBe(950);
+    expect(Calc.qPrice('T4_MAIN_SWORD', 'sell', 3, 'instant', f)).toBe(Math.round(950 * Calc.QUALITY_MULT[3]));
+    expect(Calc.qPrice('T4_MAIN_SWORD', 'sell', 5, 'instant', f)).toBe(Math.round(950 * Calc.QUALITY_MULT[5]));
+  });
+
+  it('EV non faussée quand seules certaines qualités sont cotées', () => {
+    const f = { T4_MAIN_SWORD: { ask: [1000, 0, 0, 0, 0], bid: [950, 0, 0, 0, 0] } };
+    const ev = Calc.evPrice('T4_MAIN_SWORD', 'sell', state(), f);
+    const probs = Calc.QUALITY_PROBS.noFocus;
+    let expected = 0;
+    for (let q = 1; q <= 5; q++) expected += probs[q] * Math.round(950 * Calc.QUALITY_MULT[q]);
+    expect(ev).toBe(Math.round(expected));
+    expect(ev).toBeGreaterThan(0);
+  });
+
   it('calcule l\'EV pondérée à partir des prix du feed', () => {
     const s = state();
     const ev = Calc.evPrice('T4_MAIN_SWORD', 'sell', s, feed());

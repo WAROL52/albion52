@@ -24,7 +24,7 @@ export function PriceBar({ outId, onSynced }: { outId: string; onSynced: () => P
   }, [outId]);
 
   const age = getAgeMs(outId);
-  const overPrice = draft !== '' ? parseInt(draft, 10) : NaN;
+  const overPrice = draft.trim() === '' ? NaN : Number(draft);
 
   return (
     <div className="mt-3 space-y-2 rounded-xl border border-[var(--line)] bg-[var(--panel)] p-3 text-xs">

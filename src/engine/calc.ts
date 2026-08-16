@@ -317,7 +317,12 @@ const qPrice = (id: string, side: 'buy' | 'sell', q: number, sense: Sense, feed?
   const fp = feed?.[id];
   if (fp) {
     const arr = sense === 'instant' ? (side === 'buy' ? fp.ask : fp.bid) : (side === 'buy' ? fp.bid : fp.ask);
-    return arr[q - 1];
+    const v = arr[q - 1];
+    if (v > 0) return v;
+    // Qualité absente du feed (AODP ne renvoie que les qualités listées) :
+    // repli sur Q1 × multiplicateur, puis sur le repli prototype
+    if (arr[0] > 0) return Math.round(arr[0] * QUALITY_MULT[q]);
+    return Math.round(priceOf(id, side, sense, undefined) * QUALITY_MULT[q]);
   }
   return Math.round(priceOf(id, side, sense) * QUALITY_MULT[q]);
 };
