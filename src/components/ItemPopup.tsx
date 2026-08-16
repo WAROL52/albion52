@@ -31,6 +31,7 @@ export function ItemPopup({ itemId, state, feed, onClose, onOpen }: {
   onOpen: (id: string) => void;
 }) {
   const [tab, setTab] = useState<Tab>('details');
+  const [qSel, setQSel] = useState<number>(typeof state.selection.quality === 'number' ? state.selection.quality : 1);
   const p = Calc.parseId(itemId);
   const fam = p ? Calc.FAMILIES[p.family] : undefined;
   const rec = Calc.recipeFor(itemId, state, Calc.sourceContext(state));
@@ -109,12 +110,25 @@ export function ItemPopup({ itemId, state, feed, onClose, onOpen }: {
               </div>
 
               <div className="mt-4">
-                <div className="mb-1.5 text-[10px] uppercase tracking-wide text-[var(--muted)]">{t('popup.marketPrices')}</div>
+                <div className="mb-1.5 flex items-center justify-between gap-2">
+                  <span className="text-[10px] uppercase tracking-wide text-[var(--muted)]">{t('popup.marketPrices')} · Q{qSel}</span>
+                  <span className="flex gap-1">
+                    {[1, 2, 3, 4, 5].map(n => (
+                      <button
+                        key={n}
+                        onClick={() => setQSel(n)}
+                        className={`rounded-full border px-1.5 py-px text-[9px] ${n === qSel ? 'border-[var(--accent)] bg-[var(--accent)] font-bold text-[#1c1305]' : 'border-[var(--line)] text-[var(--muted)]'}`}
+                      >
+                        Q{n}
+                      </button>
+                    ))}
+                  </span>
+                </div>
                 <div className="overflow-hidden rounded-lg border border-[var(--line)]">
                   {MARKETS.map(m => {
                     const mp = marketPrices[m];
-                    const ask = mp.ask[0];
-                    const bid = mp.bid[0];
+                    const ask = mp.ask[qSel - 1];
+                    const bid = mp.bid[qSel - 1];
                     return (
                       <div key={m} className="flex items-center justify-between gap-2 border-b border-[var(--line)] px-2.5 py-1 last:border-b-0">
                         <span className={m === state.market ? 'font-semibold text-[var(--accent)]' : 'text-[var(--fg)]'}>{m}</span>
