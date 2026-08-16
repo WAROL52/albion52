@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { t } from '../i18n';
-import { clearOverride, getAgeMs, getFeed, isFresh, setOverride } from '../data/prices';
+import { ALL_MARKETS, MARKETS, clearOverride, getAgeMs, getFeed, isFresh, setOverride } from '../data/prices';
 import type { PriceFeed } from '../engine/calc';
 
 const fmtAge = (ms: number): string => {
@@ -9,21 +9,21 @@ const fmtAge = (ms: number): string => {
   return `${Math.floor(ms / 3_600_000)}h`;
 };
 
-export function PriceBar({ outId, onSynced }: { outId: string; onSynced: () => Promise<void> }) {
-  const [feed, setFeed] = useState<PriceFeed>(getFeed);
+export function PriceBar({ outId, market, onMarket, onSynced }: { outId: string; market: string; onMarket: (m: string) => void; onSynced: () => Promise<void> }) {
+  const [feed, setFeed] = useState<PriceFeed>(() => getFeed(market));
   const [draft, setDraft] = useState('');
   const [overridden, setOverridden] = useState(false);
 
   const apply = async () => {
     await onSynced();
-    setFeed(getFeed());
+    setFeed(getFeed(market));
   };
 
   useEffect(() => {
     void apply();
-  }, [outId]);
+  }, [outId, market]);
 
-  const age = getAgeMs(outId);
+  const age = getAgeMs(outId, market);
   const overPrice = draft.trim() === '' ? NaN : Number(draft);
 
   return (
@@ -31,8 +31,18 @@ export function PriceBar({ outId, onSynced }: { outId: string; onSynced: () => P
       <div className="flex items-center justify-between gap-2">
         <span className="text-[var(--muted)]">{t('prices.title')}</span>
         <span className="flex items-center gap-2">
+          <select
+            value={market}
+            onChange={e => onMarket(e.target.value)}
+            className="rounded border border-[var(--line)] bg-[var(--panel2)] px-1.5 py-0.5 text-[var(--fg)] outline-none focus:border-[var(--accent)]"
+          >
+            <option value={ALL_MARKETS}>{t('prices.allMarkets')}</option>
+            {MARKETS.map(m => (
+              <option key={m} value={m}>{m}</option>
+            ))}
+          </select>
           <span className="rounded-full border border-[var(--line)] px-2 py-0.5 text-[var(--muted)]">
-            {age === null ? t('prices.noData') : isFresh(outId) ? t('prices.age', { age: fmtAge(age) }) : t('prices.stale', { age: fmtAge(age) })}
+            {age === null ? t('prices.noData') : isFresh(outId, market) ? t('prices.age', { age: fmtAge(age) }) : t('prices.stale', { age: fmtAge(age) })}
           </span>
           <button
             onClick={() => void apply()}
@@ -67,7 +77,7 @@ export function PriceBar({ outId, onSynced }: { outId: string; onSynced: () => P
             onClick={() => {
               clearOverride(outId);
               setOverridden(false);
-              setFeed(getFeed());
+              setFeed(getFeed(market));
             }}
             className="text-[var(--neg)] hover:underline"
           >
@@ -79,7 +89,7 @@ export function PriceBar({ outId, onSynced }: { outId: string; onSynced: () => P
           onClick={() => {
             setOverride(outId, overPrice);
             setOverridden(true);
-            setFeed(getFeed());
+            setFeed(getFeed(market));
           }}
           className="rounded-full border border-[var(--accent)] px-2 py-0.5 text-[var(--accent)] disabled:opacity-40"
         >

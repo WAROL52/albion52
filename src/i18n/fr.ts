@@ -36,6 +36,9 @@ const fr = {
   'prices.buy': 'Achat',
   'prices.override': 'Override',
   'prices.apply': 'OK',
+  'prices.market': 'Marché',
+  'prices.allMarkets': 'Toutes les villes',
+  'popup.marketPrices': 'Prix par marché',
 
   'detail.title': 'Détail du calcul',
   'detail.net': 'Net (après retour)',

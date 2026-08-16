@@ -18,6 +18,7 @@ describe('persistance des réglages', () => {
       sources: { METALBAR: 'buy' },
       sourceConfig: undefined,
       sourcePropagation: 'all',
+      market: 'Caerleon',
     });
     const s = loadSettings();
     expect(s.selection).toEqual({ family: 'MAIN_SWORD', tier: 'T5', enchant: 2, quality: 3 });
@@ -29,6 +30,7 @@ describe('persistance des réglages', () => {
     expect(s.sense).toBe('orders');
     expect(s.sources.METALBAR).toBe('buy');
     expect(s.sourcePropagation).toBe('all');
+    expect(s.market).toBe('Caerleon');
   });
 
   it('retourne les défauts quand rien n\'est sauvegardé', () => {

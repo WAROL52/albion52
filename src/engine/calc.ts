@@ -69,6 +69,7 @@ export interface State {
   sources: Sources;
   sourceConfig: Record<string, SourceEntry> | undefined;
   sourcePropagation: SourcePropagation;
+  market: string;
 }
 
 export type Action =
@@ -81,6 +82,7 @@ export type Action =
   | { type: 'SET_SELECTION'; value: Partial<Selection> }
   | { type: 'SET_SOURCE'; family: string; source: Source }
   | { type: 'SET_SOURCE_PROPAGATION'; value: SourcePropagation }
+  | { type: 'SET_MARKET'; value: string }
   | { type: 'RESET' };
 
 export interface Recipe {
@@ -434,6 +436,7 @@ const DEFAULTS: State = {
   sources: defaultSources(),
   sourceConfig: defaultSourceConfig(),
   sourcePropagation: 'none',
+  market: 'ALL',
 };
 
 const sourceOf = (s: State, id: string): Source => {
@@ -554,6 +557,7 @@ const reduce = (s: State, action: Action): State => {
     return { ...s, sources: newSources, sourceConfig: newSourceConfig };
 }
     case 'SET_SOURCE_PROPAGATION': return { ...s, sourcePropagation: action.value };
+    case 'SET_MARKET': return { ...s, market: action.value };
     case 'RESET': return { ...DEFAULTS, sources: defaultSources(), sourceConfig: defaultSourceConfig() };
     default: return s;
   }

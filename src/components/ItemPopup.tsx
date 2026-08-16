@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Calc, type Source, type State } from '../engine/calc';
+import { Calc, type PriceFeed, type Source, type State } from '../engine/calc';
 import { t } from '../i18n';
 import { famNameOf, kindOf, money } from '../lib/format';
 import { Icon } from './Icon';
+import { MARKETS, getAllPrices } from '../data/prices';
 
 type Tab = 'details' | 'recipe' | 'used';
 
@@ -22,9 +23,10 @@ function itemFamOf(id: string): string {
   return Calc.parseId(id)?.family ?? id;
 }
 
-export function ItemPopup({ itemId, state, onClose, onOpen }: {
+export function ItemPopup({ itemId, state, feed, onClose, onOpen }: {
   itemId: string;
   state: State;
+  feed?: PriceFeed;
   onClose: () => void;
   onOpen: (id: string) => void;
 }) {
@@ -35,8 +37,9 @@ export function ItemPopup({ itemId, state, onClose, onOpen }: {
   const used = Calc.usedIn(itemId);
   const q = state.selection.quality;
   const sense = state.sense;
-  const priceBuy = q === 'ev' ? Calc.evPrice(itemId, 'buy', state) : Calc.qPrice(itemId, 'buy', q, sense);
-  const priceSell = q === 'ev' ? Calc.evPrice(itemId, 'sell', state) : Calc.qPrice(itemId, 'sell', q, sense);
+  const priceBuy = q === 'ev' ? Calc.evPrice(itemId, 'buy', state, feed) : Calc.qPrice(itemId, 'buy', q, sense, feed);
+  const priceSell = q === 'ev' ? Calc.evPrice(itemId, 'sell', state, feed) : Calc.qPrice(itemId, 'sell', q, sense, feed);
+  const marketPrices = getAllPrices(itemId);
 
   const tabs: Array<[Tab, string]> = [
     ['details', t('popup.tab.details')],
@@ -103,6 +106,26 @@ export function ItemPopup({ itemId, state, onClose, onOpen }: {
                     <span>{money(fam.base)}</span>
                   </div>
                 )}
+              </div>
+
+              <div className="mt-4">
+                <div className="mb-1.5 text-[10px] uppercase tracking-wide text-[var(--muted)]">{t('popup.marketPrices')}</div>
+                <div className="overflow-hidden rounded-lg border border-[var(--line)]">
+                  {MARKETS.map(m => {
+                    const mp = marketPrices[m];
+                    const ask = mp.ask[0];
+                    const bid = mp.bid[0];
+                    return (
+                      <div key={m} className="flex items-center justify-between gap-2 border-b border-[var(--line)] px-2.5 py-1 last:border-b-0">
+                        <span className={m === state.market ? 'font-semibold text-[var(--accent)]' : 'text-[var(--fg)]'}>{m}</span>
+                        <span className="flex items-center gap-3 tabular-nums text-xs">
+                          <span className="text-[var(--muted)]">{t('prices.sell')} <span className="font-semibold text-[var(--silver)]">{ask > 0 ? money(ask) : '—'}</span></span>
+                          <span className="text-[var(--muted)]">{t('prices.buy')} <span className="font-semibold">{bid > 0 ? money(bid) : '—'}</span></span>
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
               <p className="mt-3 text-xs leading-relaxed text-[var(--muted)]">{fam?.kind === 'raw' ? t('popup.note.raw') : fam?.kind === 'refined' ? t('popup.note.refined') : fam?.kind === 'craft' ? t('popup.note.craft') : t('popup.note.journal')}</p>
             </>

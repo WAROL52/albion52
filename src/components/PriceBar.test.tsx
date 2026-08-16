@@ -19,10 +19,10 @@ describe('PriceBar', () => {
       json: async () => [row('T4_MAIN_SWORD', 1, 7000, 4500)],
     }));
     await refresh(['T4_MAIN_SWORD']);
-    const { rerender } = render(<PriceBar outId="T4_MAIN_SWORD" onSynced={async () => {}} />);
+    const { rerender } = render(<PriceBar outId="T4_MAIN_SWORD" market="ALL" onMarket={() => {}} onSynced={async () => {}} />);
     await screen.findByText('4 500');
     expect(screen.getByText('7 000')).toBeInTheDocument();
-    rerender(<PriceBar outId="T4_MAIN_SWORD" onSynced={async () => {}} />);
+    rerender(<PriceBar outId="T4_MAIN_SWORD" market="ALL" onMarket={() => {}} onSynced={async () => {}} />);
   });
 
   it('badge frais après sync', async () => {
@@ -31,7 +31,7 @@ describe('PriceBar', () => {
       json: async () => [row('T4_MAIN_SWORD', 1, 7000, 4500)],
     }));
     await refresh(['T4_MAIN_SWORD']);
-    render(<PriceBar outId="T4_MAIN_SWORD" onSynced={async () => {}} />);
+    render(<PriceBar outId="T4_MAIN_SWORD" market="ALL" onMarket={() => {}} onSynced={async () => {}} />);
     expect(await screen.findByText(/il y a \d+s/)).toBeInTheDocument();
   });
 });

@@ -18,7 +18,7 @@ const reducer = (s: State, a: Action): State => Calc.reduce(s, a);
 export default function App() {
   const [state, dispatch] = useReducer(reducer, undefined, makeState);
   const [path, setPath] = useState<Crumb[]>([]);
-  const [feed, setFeed] = useState<PriceFeed>(getFeed);
+  const [feed, setFeed] = useState<PriceFeed>(() => getFeed(state.market));
   const [popup, setPopup] = useState<string | null>(null);
 
   useEffect(() => {
@@ -34,6 +34,7 @@ export default function App() {
   const sel = (v: Partial<Selection>) => dispatch({ type: 'SET_SELECTION', value: v });
   const setSource = (family: string, source: Source) => dispatch({ type: 'SET_SOURCE', family, source });
   const setPropagation = (p: SourcePropagation) => dispatch({ type: 'SET_SOURCE_PROPAGATION', value: p });
+  const setMarket = (m: string) => dispatch({ type: 'SET_MARKET', value: m });
   const reset = () => {
     setPath([]);
     setPopup(null);
@@ -41,8 +42,8 @@ export default function App() {
   };
 
   const syncPrices = async () => {
-    await refresh(priceIdsFor(outId));
-    setFeed(getFeed());
+    await refresh(priceIdsFor(outId), state.market);
+    setFeed(getFeed(state.market));
   };
 
   return (
@@ -60,7 +61,7 @@ export default function App() {
               onReset={reset}
               onOpen={setPopup}
             />
-            <PriceBar outId={outId} onSynced={syncPrices} />
+            <PriceBar outId={outId} market={state.market} onMarket={setMarket} onSynced={syncPrices} />
             <Settings state={state} dispatch={dispatch} />
           </div>
         </div>
@@ -85,7 +86,7 @@ export default function App() {
       </div>
 
       {popup && (
-        <ItemPopup itemId={popup} state={state} onClose={() => setPopup(null)} onOpen={setPopup} />
+        <ItemPopup itemId={popup} state={state} feed={feed} onClose={() => setPopup(null)} onOpen={setPopup} />
       )}
     </div>
   );
