@@ -93,6 +93,8 @@ export interface Recipe {
   journal: string;
   out: string;
   quality: boolean;
+  /** Source effective par ingrédient (aligned sur ingredients), remplie si recipeFor reçoit un contexte */
+  ingSources?: Source[];
 }
 
 export interface IngredientNode {
@@ -337,7 +339,7 @@ const KIND_DESC = {
   craft: "Objet fabriqué en atelier à partir de matériaux raffinés (et d'un journal).",
 };
 
-const recipeFor = (itId: string): Recipe | null => {
+const recipeFor = (itId: string, s?: State, ctx?: SourceContext): Recipe | null => {
   const p = parseId(itId);
   if (!p) return null;
   const f = FAMILIES[p.family];
@@ -346,7 +348,7 @@ const recipeFor = (itId: string): Recipe | null => {
   let ingredients: Array<[string, number]> = [];
   if (f.kind === 'refined') ingredients = [[mkIng(f.from!), 3]];
   else if (f.recipe) ingredients = f.recipe.map(([fam, qty]) => [mkIng(fam), qty]);
-  return {
+  const rec: Recipe = {
     id: itId,
     name: f.name,
     type: TYPE[f.kind],
@@ -357,6 +359,19 @@ const recipeFor = (itId: string): Recipe | null => {
     out: itId,
     quality: true,
   };
+  if (s && ctx) {
+    // Candidat 4 : hints de source par ingrédient selon le contexte utilisateur
+    const local: SourceContext = { ...ctx, parentSource: undefined };
+    if (ctx.propagation === 'all' && !local.rootSource) {
+      local.rootSource = nodeSource(s, itId, { ...local, rootSource: undefined });
+    }
+    rec.ingSources = ingredients.map(([id]) => {
+      let src = nodeSource(s, id, local);
+      if (!sourceOptions(id).includes(src)) src = defaultSource(parseId(id)?.family ?? '');
+      return src;
+    });
+  }
+  return rec;
 };
 const recipeProducing = (id: string): Recipe | null => recipeFor(id);
 

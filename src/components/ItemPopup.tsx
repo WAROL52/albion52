@@ -1,10 +1,22 @@
 import { useState } from 'react';
-import { Calc, type State } from '../engine/calc';
+import { Calc, type Source, type State } from '../engine/calc';
 import { t } from '../i18n';
 import { famNameOf, kindOf, money } from '../lib/format';
 import { Icon } from './Icon';
 
 type Tab = 'details' | 'recipe' | 'used';
+
+const SOURCE_LABEL: Record<Source, string> = {
+  buy: t('detail.source.buy'),
+  craft: t('detail.source.craft'),
+  gather: t('detail.source.gather'),
+};
+
+const SOURCE_CLS: Record<Source, string> = {
+  buy: 'border-[var(--line)] text-[var(--muted)]',
+  craft: 'border-[var(--accent)] text-[var(--accent)]',
+  gather: 'border-[var(--pos)] text-[var(--pos)]',
+};
 
 function itemFamOf(id: string): string {
   return Calc.parseId(id)?.family ?? id;
@@ -19,7 +31,7 @@ export function ItemPopup({ itemId, state, onClose, onOpen }: {
   const [tab, setTab] = useState<Tab>('details');
   const p = Calc.parseId(itemId);
   const fam = p ? Calc.FAMILIES[p.family] : undefined;
-  const rec = Calc.recipeFor(itemId);
+  const rec = Calc.recipeFor(itemId, state, Calc.sourceContext(state));
   const used = Calc.usedIn(itemId);
   const q = state.selection.quality;
   const sense = state.sense;
@@ -100,7 +112,7 @@ export function ItemPopup({ itemId, state, onClose, onOpen }: {
             rec && rec.ingredients.length ? (
               <>
                 <div className="space-y-1.5">
-                  {rec.ingredients.map(([ingId, qty]) => (
+                  {rec.ingredients.map(([ingId, qty], i) => (
                     <button
                       key={ingId}
                       onClick={() => onOpen(ingId)}
@@ -111,6 +123,11 @@ export function ItemPopup({ itemId, state, onClose, onOpen }: {
                         <span className="block text-sm font-bold">{famNameOf(itemFamOf(ingId))}</span>
                         <span className="block text-xs text-[var(--muted)]">{ingId} × {qty}</span>
                       </span>
+                      {rec.ingSources?.[i] && (
+                        <span className={`shrink-0 rounded-full border px-1.5 py-px text-[9px] uppercase ${SOURCE_CLS[rec.ingSources[i]]}`}>
+                          {SOURCE_LABEL[rec.ingSources[i]]}
+                        </span>
+                      )}
                     </button>
                   ))}
                   {rec.journal && (
@@ -122,6 +139,9 @@ export function ItemPopup({ itemId, state, onClose, onOpen }: {
                       <span className="min-w-0 flex-1">
                         <span className="block text-sm font-bold">{famNameOf(itemFamOf(rec.journal))}</span>
                         <span className="block text-xs text-[var(--muted)]">{rec.journal} × 1</span>
+                      </span>
+                      <span className={`shrink-0 rounded-full border px-1.5 py-px text-[9px] uppercase ${SOURCE_CLS.buy}`}>
+                        {SOURCE_LABEL.buy}
                       </span>
                     </button>
                   )}

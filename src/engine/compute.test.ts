@@ -149,4 +149,32 @@ describe('compute — coût complet et rentabilité', () => {
     expect(res.node.ingNodes[0].source).toBe('craft');
     expect(res.node.ingNodes[0].children[0].source).toBe('gather');
   });
+
+  it('recipeFor source-aware : hints reflètent les épingles utilisateur', () => {
+    const s = state();
+    const ctx = Calc.sourceContext(s, { METALBAR: { source: 'buy', enabled: true } });
+    const rec = Calc.recipeFor('T4_MAIN_SWORD', s, ctx);
+    expect(rec?.ingSources?.[0]).toBe('buy');
+    expect(rec?.ingSources?.[1]).toBe('craft');
+  });
+
+  it('recipeFor source-aware : repli si la source épinglée est incompatible (gather sur raffiné)', () => {
+    const s = state();
+    const ctx = Calc.sourceContext(s, { METALBAR: { source: 'gather', enabled: true } });
+    const rec = Calc.recipeFor('T4_MAIN_SWORD', s, ctx);
+    expect(rec?.ingSources?.[0]).toBe('craft');
+  });
+
+  it('recipeFor source-aware : propagation \'all\' applique la source de l\'item à tous les ingrédients', () => {
+    const s = state();
+    const ctx = Calc.sourceContext(s, { MAIN_SWORD: { source: 'buy', enabled: true } }, 'all');
+    const rec = Calc.recipeFor('T4_MAIN_SWORD', s, ctx);
+    expect(rec?.ingSources?.every(src => src === 'buy')).toBe(true);
+  });
+
+  it('recipeFor reste structurel sans contexte (backward compatible)', () => {
+    const rec = Calc.recipeFor('T4_MAIN_SWORD');
+    expect(rec?.ingSources).toBeUndefined();
+    expect(rec?.ingredients.length).toBe(3);
+  });
 });
