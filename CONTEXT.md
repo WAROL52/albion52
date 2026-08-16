@@ -13,7 +13,7 @@ Le cluster de jeu Albion (West, Asia, Europe) dans lequel le joueur évolue ; il
 _Avoid_: région, monde
 
 **Marché**:
-Un endroit où s'échangent des ordres d'achat et de vente : les cinq villes royales, Caerleon, et le Black Market.
+Un endroit où s'échangent des ordres d'achat et de vente : les cinq villes royales, Caerleon, le Black Market, et Brecilien.
 _Avoid_: ville (une ville est un marché particulier, pas un concept distinct)
 
 **Item**:

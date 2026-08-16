@@ -7,6 +7,7 @@ const seed = () => {
     T4_ORE: {
       Caerleon: { ask: [100, 0, 0, 0, 0], bid: [95, 0, 0, 0, 0], fetchedAt: Date.now() },
       Bridgewatch: { ask: [120, 0, 0, 0, 0], bid: [110, 0, 0, 0, 0], fetchedAt: Date.now() },
+      Brecilien: { ask: [80, 0, 0, 0, 0], bid: [75, 0, 0, 0, 0], fetchedAt: Date.now() },
     },
   }));
 };
@@ -20,11 +21,12 @@ describe('prix par marché', () => {
   it('getFeed sélectionne le marché choisi', () => {
     expect(getFeed('Caerleon').T4_ORE?.ask[0]).toBe(100);
     expect(getFeed('Bridgewatch').T4_ORE?.ask[0]).toBe(120);
+    expect(getFeed('Brecilien').T4_ORE?.ask[0]).toBe(80);
   });
 
   it('getFeed \'ALL\' fusionne le meilleur ask et le meilleur bid par qualité', () => {
     const fp = getFeed(ALL_MARKETS).T4_ORE;
-    expect(fp?.ask[0]).toBe(100);
+    expect(fp?.ask[0]).toBe(80);
     expect(fp?.bid[0]).toBe(110);
   });
 

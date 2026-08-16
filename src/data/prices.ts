@@ -2,7 +2,7 @@ import type { FeedPrice, PriceFeed } from '../engine/calc';
 import { Calc } from '../engine/calc';
 
 const API = 'https://europe.albion-online-data.com';
-export const MARKETS = ['Caerleon', 'Bridgewatch', 'Fort_Sterling', 'Lymhurst', 'Martlock', 'Thetford', 'Black Market'] as const;
+export const MARKETS = ['Caerleon', 'Bridgewatch', 'Fort_Sterling', 'Lymhurst', 'Martlock', 'Thetford', 'Black Market', 'Brecilien'] as const;
 export type Market = (typeof MARKETS)[number];
 export const ALL_MARKETS = 'ALL';
 const QUALITIES = '1,2,3,4,5';
