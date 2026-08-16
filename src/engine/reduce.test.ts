@@ -56,6 +56,15 @@ describe('reduce — actions et clamps', () => {
     expect(s.sources['JOURNAL_WARRIOR']).toBe('buy');
   });
 
+  it('définit et réinitialise la propagation de source', () => {
+    let s = Calc.reduce(state(), { type: 'SET_SOURCE_PROPAGATION', value: 'all' });
+    expect(s.sourcePropagation).toBe('all');
+    s = Calc.reduce(s, { type: 'SET_SOURCE_PROPAGATION', value: 'parent' });
+    expect(s.sourcePropagation).toBe('parent');
+    s = Calc.reduce(s, { type: 'RESET' });
+    expect(s.sourcePropagation).toBe('none');
+  });
+
   it('les valeurs par défaut respectent la spec', () => {
     const d = Calc.DEFAULTS;
     expect(d.quantity).toBe(100);
@@ -67,5 +76,6 @@ describe('reduce — actions et clamps', () => {
     expect(d.returnWithFocus).toBe(0.65);
     expect(d.sense).toBe('instant');
     expect(d.selection.quality).toBe('ev');
+    expect(d.sourcePropagation).toBe('none');
   });
 });

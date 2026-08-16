@@ -1,13 +1,14 @@
-import type { ComputeResult, Source, State } from '../engine/calc';
+import type { ComputeResult, Source, SourcePropagation, State } from '../engine/calc';
 import { t } from '../i18n';
 import { cls, fmtTime, money, verdict } from '../lib/format';
 import { IngredientTree } from './IngredientTree';
 
-export function Verdict({ res, qty, state, onSource, onOpen }: {
+export function Verdict({ res, qty, state, onSource, onPropagation, onOpen }: {
   res: ComputeResult;
   qty: number;
   state: State;
   onSource: (family: string, source: Source) => void;
+  onPropagation?: (p: SourcePropagation) => void;
   onOpen?: (id: string) => void;
 }) {
   const rows = [
@@ -68,7 +69,7 @@ export function Verdict({ res, qty, state, onSource, onOpen }: {
         </div>
 
         <div className="mb-1 text-xs uppercase tracking-wide text-[var(--muted)]">{t('detail.ingredients')}</div>
-        <IngredientTree res={res} state={state} journCost={res.journ} onSource={onSource} onOpen={onOpen} />
+        <IngredientTree res={res} state={state} journCost={res.journ} onSource={onSource} onPropagation={onPropagation} onOpen={onOpen} />
       </div>
     </>
   );

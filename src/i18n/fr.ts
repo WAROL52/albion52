@@ -47,6 +47,10 @@ const fr = {
   'detail.source.buy': 'Acheter',
   'detail.source.craft': 'Crafter',
   'detail.source.gather': 'Récolter',
+  'detail.propagation': 'Appliquer la source à',
+  'detail.propagation.none': 'Par famille',
+  'detail.propagation.parent': 'Suivre le parent',
+  'detail.propagation.all': 'Tout l\'arbre',
 
   'settings.title': 'Réglages',
   'settings.quantity': 'Quantité',

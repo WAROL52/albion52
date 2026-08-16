@@ -1,9 +1,19 @@
 export type Tier = 'T2' | 'T3' | 'T4' | 'T5' | 'T6' | 'T7' | 'T8';
 export type FamilyKind = 'raw' | 'refined' | 'craft';
 export type Source = 'buy' | 'craft' | 'gather';
-export type SourceEntry = { source: Source | undefined; enabled: boolean };export type SourceConfig = Record<string, SourceEntry>;
+export type SourceEntry = { source: Source | undefined; enabled: boolean };
+export type SourceConfig = Record<string, SourceEntry>;
+export type SourcePropagation = 'none' | 'parent' | 'all';
 export type Sense = 'instant' | 'orders';
 export type Quality = 'ev' | 1 | 2 | 3 | 4 | 5;
+
+/** Contexte de résolution des sources propagé à travers l'arbre d'ingrédients */
+export interface SourceContext {
+  sourceConfig: SourceConfig | undefined;
+  propagation: SourcePropagation;
+  parentSource: Source | undefined;
+  rootSource: Source | undefined;
+}
 
 export interface FamilyDef {
   name: string;
@@ -58,6 +68,7 @@ export interface State {
   sense: Sense;
   sources: Sources;
   sourceConfig: Record<string, SourceEntry> | undefined;
+  sourcePropagation: SourcePropagation;
 }
 
 export type Action =
@@ -69,6 +80,7 @@ export type Action =
   | { type: 'SET_QTY'; value: number }
   | { type: 'SET_SELECTION'; value: Partial<Selection> }
   | { type: 'SET_SOURCE'; family: string; source: Source }
+  | { type: 'SET_SOURCE_PROPAGATION'; value: SourcePropagation }
   | { type: 'RESET' };
 
 export interface Recipe {
@@ -401,6 +413,7 @@ const DEFAULTS: State = {
   sense: 'instant',
   sources: defaultSources(),
   sourceConfig: defaultSourceConfig(),
+  sourcePropagation: 'none',
 };
 
 const sourceOf = (s: State, id: string): Source => {
@@ -408,32 +421,48 @@ const sourceOf = (s: State, id: string): Source => {
   return s.sources[fam] || defaultSource(fam);
 };
 
-/** Retourne la source effective : entrée épinglée de sourceConfig (enabled) sinon state.sources sinon defaultSource */
-const effectiveSource = (s: State, sourceConfig: SourceConfig | undefined, id: string): Source => {
-  const cfg = sourceConfig ?? s.sourceConfig;
-  const entry = cfg?.[parseId(id)?.family ?? ''];
+/** Contexte de calcul depuis l'état (le seam : injectable explicitement, sinon state.sourceConfig) */
+export const sourceContext = (
+  s: State,
+  sourceConfig?: SourceConfig,
+  propagation?: SourcePropagation,
+): SourceContext => ({
+  sourceConfig: sourceConfig ?? s.sourceConfig,
+  propagation: propagation ?? s.sourcePropagation,
+  parentSource: undefined,
+  rootSource: undefined,
+});
+
+/** Résout la source d'un nœud de l'arbre : épinglée > héritage parent ('parent') > racine ('all') > legacy > default */
+const nodeSource = (s: State, id: string, ctx: SourceContext): Source => {
+  if (ctx.propagation === 'all' && ctx.rootSource) return ctx.rootSource;
+  const entry = ctx.sourceConfig?.[parseId(id)?.family ?? ''];
   if (entry?.enabled && entry.source) return entry.source;
+  if (ctx.propagation === 'parent' && ctx.parentSource) return ctx.parentSource;
   return sourceOf(s, id);
 };
 
 const MAX_DEPTH = 6;
 
-const computeIngredient = (itemId: string, qty: number, s: State, depth: number, feed?: PriceFeed, sourceConfig?: SourceConfig): IngredientNode => {
-  const source = effectiveSource(s, sourceConfig, itemId);
+const computeIngredient = (itemId: string, qty: number, s: State, depth: number, feed?: PriceFeed, ctx?: SourceContext): IngredientNode => {
+  const c = ctx ?? sourceContext(s);
+  const source = nodeSource(s, itemId, c);
   if (source === 'gather')
     return { item: itemId, source, qty, cost: 0, timeSec: 0, children: [] };
   if (source === 'craft' && depth < MAX_DEPTH) {
     const sub = recipeProducing(itemId);
     if (sub) {
-      const node = computeRecipe(sub, qty, s, depth + 1, feed, sourceConfig);
+      const childCtx: SourceContext = { ...c, parentSource: source };
+      const node = computeRecipe(sub, qty, s, depth + 1, feed, childCtx);
       return { item: itemId, source, qty, sub, cost: node.cost, timeSec: node.timeSec, children: node.ingNodes };
     }
   }
   return { item: itemId, source: 'buy', qty, cost: priceOf(itemId, 'buy', s.sense, feed) * qty, timeSec: 0, children: [] };
 };
 
-const computeRecipe = (recipe: Recipe, qty: number, s: State, depth: number, feed?: PriceFeed, sourceConfig?: SourceConfig): RecipeNode => {
-  const ingNodes = recipe.ingredients.map(([id, iqty]) => computeIngredient(id, iqty * qty, s, depth, feed, sourceConfig));
+const computeRecipe = (recipe: Recipe, qty: number, s: State, depth: number, feed?: PriceFeed, ctx?: SourceContext): RecipeNode => {
+  const c = ctx ?? sourceContext(s);
+  const ingNodes = recipe.ingredients.map(([id, iqty]) => computeIngredient(id, iqty * qty, s, depth, feed, c));
   const gross = ingNodes.reduce((t, n) => t + n.cost, 0);
   const rate = s.focus ? s.returnWithFocus : s.returnNoFocus;
   const net = gross * (1 - rate);
@@ -453,14 +482,17 @@ const computeRecipe = (recipe: Recipe, qty: number, s: State, depth: number, fee
   };
 };
 
-const compute = (s: State, feed?: PriceFeed, sourceConfig?: SourceConfig): ComputeResult => {
+const compute = (s: State, feed?: PriceFeed, ctx?: SourceContext): ComputeResult => {
+  const base = ctx ?? sourceContext(s);
   const sel = s.selection;
   const outId = itemId(sel.family, sel.tier, sel.enchant);
+  const rootSource = nodeSource(s, outId, { ...base, rootSource: undefined, parentSource: undefined });
+  const c: SourceContext = { ...base, rootSource };
   const recipe = recipeFor(outId);
   const isRaw = !recipe;
   const node = isRaw
     ? { recipe: null, qty: s.quantity, ingNodes: [], gross: 0, rate: 0, net: 0, fee: 0, journ: 0, cost: 0, timeSec: 0 }
-    : computeRecipe(recipe!, s.quantity, s, 0, feed, sourceConfig);
+    : computeRecipe(recipe!, s.quantity, s, 0, feed, { ...c, parentSource: rootSource });
   const sellPerUnit = sel.quality === 'ev'
     ? evPrice(outId, 'sell', s, feed)
     : qPrice(outId, 'sell', sel.quality, s.sense, feed);
@@ -501,6 +533,7 @@ const reduce = (s: State, action: Action): State => {
     const newSourceConfig = { ...s.sourceConfig, [action.family]: newSourceEntry };
     return { ...s, sources: newSources, sourceConfig: newSourceConfig };
 }
+    case 'SET_SOURCE_PROPAGATION': return { ...s, sourcePropagation: action.value };
     case 'RESET': return { ...DEFAULTS, sources: defaultSources(), sourceConfig: defaultSourceConfig() };
     default: return s;
   }
@@ -510,6 +543,6 @@ export const Calc = {
   DEFAULTS, TIERS, TIER_MULT, ENCHANTS, ENCHANT_MULT, QUALITY_PROBS, QUALITY_MULT,
   JOURNAL, FAMILIES, CATALOG, GATHERABLE, SOURCES,
   itemId, parseId, isJournal, priceOf, qPrice, evPrice, recipeFor, recipeProducing,
-  sourceOptions, sourceOf, defaultSources, compute, computeRecipe, computeIngredient,
+  sourceOptions, sourceOf, defaultSources, sourceContext, compute, computeRecipe, computeIngredient,
   reduce, usedIn,
 };

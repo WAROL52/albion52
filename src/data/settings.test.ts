@@ -17,6 +17,7 @@ describe('persistance des réglages', () => {
       sense: 'orders',
       sources: { METALBAR: 'buy' },
       sourceConfig: undefined,
+      sourcePropagation: 'all',
     });
     const s = loadSettings();
     expect(s.selection).toEqual({ family: 'MAIN_SWORD', tier: 'T5', enchant: 2, quality: 3 });
@@ -27,6 +28,7 @@ describe('persistance des réglages', () => {
     expect(s.journalCounted).toBe(false);
     expect(s.sense).toBe('orders');
     expect(s.sources.METALBAR).toBe('buy');
+    expect(s.sourcePropagation).toBe('all');
   });
 
   it('retourne les défauts quand rien n\'est sauvegardé', () => {

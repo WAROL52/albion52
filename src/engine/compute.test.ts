@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { Calc, type SourceConfig, type State } from './calc';
+import { Calc, type IngredientNode, type SourceConfig, type State } from './calc';
 
 const state = (): State => ({ ...Calc.DEFAULTS, sources: { ...Calc.DEFAULTS.sources } });
 
@@ -98,7 +98,7 @@ describe('compute — coût complet et rentabilité', () => {
     const s = state();
     const cfg: SourceConfig = { ORE: { source: 'buy', enabled: true } };
     const base = Calc.computeRecipe(Calc.recipeFor('T4_METALBAR')!, 10, s, 0);
-    const forced = Calc.computeRecipe(Calc.recipeFor('T4_METALBAR')!, 10, s, 0, undefined, cfg);
+    const forced = Calc.computeRecipe(Calc.recipeFor('T4_METALBAR')!, 10, s, 0, undefined, Calc.sourceContext(s, cfg));
     expect(base.ingNodes[0].source).toBe('gather');
     expect(forced.ingNodes[0].source).toBe('buy');
     expect(forced.cost).toBeGreaterThan(base.cost);
@@ -107,9 +107,46 @@ describe('compute — coût complet et rentabilité', () => {
   it('seam : compute accepte sourceConfig en paramètre, undefined retombe sur state.sourceConfig', () => {
     const s = state();
     const cfg: SourceConfig = { ORE: { source: 'buy', enabled: true } };
-    const viaParam = Calc.compute(s, undefined, cfg);
+    const viaParam = Calc.compute(s, undefined, Calc.sourceContext(s, cfg));
     const viaState = Calc.compute({ ...s, sourceConfig: cfg });
     expect(viaParam.node.cost).toBe(viaState.node.cost);
     expect(viaParam.node.cost).toBeGreaterThan(Calc.compute(s).node.cost);
+  });
+
+  it('propagation \'all\' : la source de la racine s\'applique à tout l\'arbre', () => {
+    const s = state();
+    const ctx = Calc.sourceContext(s, { MAIN_SWORD: { source: 'buy', enabled: true } }, 'all');
+    const res = Calc.compute(s, undefined, ctx);
+    const allBuy = (n: IngredientNode): boolean => n.source === 'buy' && n.children.every(allBuy);
+    expect(res.node.ingNodes.every(allBuy)).toBe(true);
+    expect(res.node.cost).toBeGreaterThan(Calc.compute(s).node.cost);
+  });
+
+  it('propagation \'parent\' : les enfants sans épingle héritent de la source du parent', () => {
+    const s = state();
+    const ctx = Calc.sourceContext(s, { MAIN_SWORD: { source: 'craft', enabled: true } }, 'parent');
+    const res = Calc.compute(s, undefined, ctx);
+    const bar = res.node.ingNodes[0];
+    expect(bar.source).toBe('craft');
+    expect(bar.children[0].source).toBe('buy');
+    const none = Calc.compute(s);
+    expect(none.node.ingNodes[0].children[0].source).toBe('gather');
+  });
+
+  it('propagation \'parent\' : une épingle enfant bat l\'héritage', () => {
+    const s = state();
+    const ctx = Calc.sourceContext(s, { MAIN_SWORD: { source: 'craft', enabled: true }, ORE: { source: 'gather', enabled: true } }, 'parent');
+    const res = Calc.compute(s, undefined, ctx);
+    const bar = res.node.ingNodes[0];
+    expect(bar.source).toBe('craft');
+    expect(bar.children[0].source).toBe('gather');
+    expect(bar.children[0].cost).toBe(0);
+  });
+
+  it('propagation \'none\' (défaut) : chaque famille garde sa propre source', () => {
+    const s = state();
+    const res = Calc.compute(s);
+    expect(res.node.ingNodes[0].source).toBe('craft');
+    expect(res.node.ingNodes[0].children[0].source).toBe('gather');
   });
 });

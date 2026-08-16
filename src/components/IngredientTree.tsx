@@ -1,4 +1,4 @@
-import { Calc, type IngredientNode, type State, type Source } from '../engine/calc';
+import { Calc, type IngredientNode, type Source, type SourcePropagation, type State } from '../engine/calc';
 import { t } from '../i18n';
 import { Icon } from './Icon';
 import { famNameOf, money } from '../lib/format';
@@ -7,6 +7,12 @@ const SOURCE_LABEL: Record<Source, string> = {
   buy: t('detail.source.buy'),
   craft: t('detail.source.craft'),
   gather: t('detail.source.gather'),
+};
+
+const PROPAGATION_LABEL: Record<SourcePropagation, string> = {
+  none: t('detail.propagation.none'),
+  parent: t('detail.propagation.parent'),
+  all: t('detail.propagation.all'),
 };
 
 const sourceOf = (s: State, fam: string): Source => s.sources[fam] || Calc.defaultSources()[fam];
@@ -66,11 +72,12 @@ function IngRow({ node, state, depth, onSource, onOpen }: {
   );
 }
 
-export function IngredientTree({ res, state, journCost, onSource, onOpen }: {
+export function IngredientTree({ res, state, journCost, onSource, onPropagation, onOpen }: {
   res: { isRaw: boolean; recipe: { journal: string; ingredients: Array<[string, number]> } | null; node: { ingNodes: IngredientNode[] } };
   state: State;
   journCost: number;
   onSource: (family: string, source: Source) => void;
+  onPropagation?: (p: SourcePropagation) => void;
   onOpen?: (id: string) => void;
 }) {
   if (res.isRaw || !res.recipe) {
@@ -81,6 +88,24 @@ export function IngredientTree({ res, state, journCost, onSource, onOpen }: {
     : null;
   return (
     <div>
+      {onPropagation && (
+        <div className="mb-2 flex items-center gap-1.5">
+          <span className="text-[10px] uppercase tracking-wide text-[var(--muted)]">{t('detail.propagation')}</span>
+          {(['none', 'parent', 'all'] as SourcePropagation[]).map(p => (
+            <button
+              key={p}
+              onClick={() => onPropagation(p)}
+              className={`rounded-full border px-2 py-0.5 text-[10px] ${
+                state.sourcePropagation === p
+                  ? 'border-[var(--accent)] bg-[var(--accent)] font-bold text-[#1c1305]'
+                  : 'border-[var(--line)] bg-[var(--panel2)] text-[var(--muted)]'
+              }`}
+            >
+              {PROPAGATION_LABEL[p]}
+            </button>
+          ))}
+        </div>
+      )}
       {res.node.ingNodes.map(n => (
         <IngRow key={n.item} node={n} state={state} depth={0} onSource={onSource} onOpen={onOpen} />
       ))}
